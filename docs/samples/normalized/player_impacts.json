@@ -1,0 +1,62 @@
+[
+    {
+        "heroName": "Sniper",
+        "kills": 5,
+        "deaths": 9,
+        "assists": 17,
+        "heroDamage": 37625,
+        "towerDamage": 2362,
+        "impactScore": 89.61,
+        "impactLabel": "high",
+        "fightParticipation": 0.6,
+        "deathsInLosingFights": 3
+    },
+    {
+        "heroName": "Ogre Magi",
+        "kills": 10,
+        "deaths": 9,
+        "assists": 13,
+        "heroDamage": 27722,
+        "towerDamage": 0,
+        "impactScore": 73.44,
+        "impactLabel": "high",
+        "fightParticipation": 0.6,
+        "deathsInLosingFights": 3
+    },
+    {
+        "heroName": "Earthshaker",
+        "kills": 5,
+        "deaths": 11,
+        "assists": 17,
+        "heroDamage": 25927,
+        "towerDamage": 336,
+        "impactScore": 60.69,
+        "impactLabel": "high",
+        "fightParticipation": 0.8,
+        "deathsInLosingFights": 4
+    },
+    {
+        "heroName": "Shadow Shaman",
+        "kills": 7,
+        "deaths": 11,
+        "assists": 12,
+        "heroDamage": 25584,
+        "towerDamage": 1134,
+        "impactScore": 59.8,
+        "impactLabel": "high",
+        "fightParticipation": 0.8,
+        "deathsInLosingFights": 4
+    },
+    {
+        "heroName": "Tusk",
+        "kills": 5,
+        "deaths": 8,
+        "assists": 12,
+        "heroDamage": 17109,
+        "towerDamage": 0,
+        "impactScore": 42.72,
+        "impactLabel": "high",
+        "fightParticipation": 0.6,
+        "deathsInLosingFights": 3
+    }
+]

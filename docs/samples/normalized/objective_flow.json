@@ -1,0 +1,153 @@
+{
+    "events": [
+        {
+            "time": 209,
+            "type": "firstblood",
+            "team": "dire",
+            "linkedFightIndex": 0
+        },
+        {
+            "time": 399,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 3
+        },
+        {
+            "time": 471,
+            "type": "tower",
+            "team": "dire",
+            "linkedFightIndex": 4
+        },
+        {
+            "time": 585,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 6
+        },
+        {
+            "time": 626,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 7
+        },
+        {
+            "time": 653,
+            "type": "tower",
+            "team": "dire",
+            "linkedFightIndex": 7
+        },
+        {
+            "time": 791,
+            "type": "tower",
+            "team": "dire",
+            "linkedFightIndex": 8
+        },
+        {
+            "time": 845,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 9
+        },
+        {
+            "time": 1032,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 10
+        },
+        {
+            "time": 1086,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 11
+        },
+        {
+            "time": 1199,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 12
+        },
+        {
+            "time": 1211,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 12
+        },
+        {
+            "time": 1211,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 12
+        },
+        {
+            "time": 1419,
+            "type": "tower",
+            "team": "dire",
+            "linkedFightIndex": 13
+        },
+        {
+            "time": 1465,
+            "type": "tower",
+            "team": "dire",
+            "linkedFightIndex": 13
+        },
+        {
+            "time": 1525,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 13
+        },
+        {
+            "time": 1548,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 14
+        },
+        {
+            "time": 1556,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 14
+        },
+        {
+            "time": 1625,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 14
+        },
+        {
+            "time": 1640,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 14
+        },
+        {
+            "time": 1643,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 14
+        },
+        {
+            "time": 1650,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 14
+        },
+        {
+            "time": 1664,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": 14
+        },
+        {
+            "time": 1676,
+            "type": "tower",
+            "team": "radiant",
+            "linkedFightIndex": null
+        }
+    ],
+    "momentumShifts": [
+        "Radiant gained momentum around 18:06",
+        "Radiant gained momentum around 25:56"
+    ],
+    "criticalObjective": null
+}

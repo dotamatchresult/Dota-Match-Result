@@ -1,0 +1,57 @@
+{
+    "loss_type_confirmed": "OUTDRAFTED",
+    "root_cause": "Kekalahan kita banyak dipengaruhi oleh Sniper yang memberikan tekanan besar di map.",
+    "key_factors": [
+        "Witch Doctor sebagai support_control sering jadi korban pickoff, bikin kita kehilangan kontrol di awal.",
+        "Queen of Pain yang sering mati pertama kali, membuat kita kehilangan potensi damage di teamfight.",
+        "Snapfire yang punya low_objective_presence, jadi kurang berkontribusi dalam mengambil objektif."
+    ],
+    "momentum": "Momentum berubah sekitar 10:34 ketika kita kehilangan kontrol map setelah beberapa pickoff.",
+    "hero_failures": [
+        {
+            "hero": "Witch Doctor",
+            "role": "support_control",
+            "issue": "frequent_pickoff_victim",
+            "team_impact": "Kehilangan kontrol awal bikin kita kesulitan di teamfight."
+        },
+        {
+            "hero": "Queen of Pain",
+            "role": "carry_farming",
+            "issue": "frequent_first_death",
+            "team_impact": "Mati pertama kali bikin kita kehilangan damage utama."
+        },
+        {
+            "hero": "Tusk",
+            "role": "support_control",
+            "issue": "frequent_first_death",
+            "team_impact": "Mati cepat bikin kita kehilangan inisiatif di teamfight."
+        }
+    ],
+    "enemy_pressure_sources": [
+        {
+            "hero": "Sniper",
+            "threat_type": "objective_threat",
+            "how_it_hurt_us": "Tekanan dari Sniper bikin kita sulit ambil objektif."
+        },
+        {
+            "hero": "Naga Siren",
+            "threat_type": "objective_threat",
+            "how_it_hurt_us": "Naga Siren bikin kita kesulitan bertahan dan ambil map control."
+        },
+        {
+            "hero": "Venomancer",
+            "threat_type": "teamfight_dominance",
+            "how_it_hurt_us": "Inisiasi dari Venomancer bikin kita kalah di teamfight."
+        }
+    ],
+    "objective_consequences": {
+        "post_pickoff_lost": 1,
+        "missed_after_wins": 2,
+        "roshan": "none",
+        "critical_event": "none"
+    },
+    "scaling_assessment": {
+        "pattern": "NeverAhead",
+        "summary": "Kita terus tertinggal dalam gold dari awal hingga pertengahan permainan."
+    }
+}

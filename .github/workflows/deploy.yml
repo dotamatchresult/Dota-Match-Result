@@ -1,0 +1,73 @@
+name: Deploy Laravel to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Validate required secrets
+      run: |
+        if [ -z "${{ secrets.SSH_PUBLIC_IP }}" ]; then
+          echo "Error: SSH_PUBLIC_IP secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.SSH_USER }}" ]; then
+          echo "Error: SSH_USER secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+          echo "Error: SSH_PRIVATE_KEY secret is not set"
+          exit 1
+        fi
+        echo "All required secrets are set"
+
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan -H "${{ secrets.SSH_PUBLIC_IP }}" >> ~/.ssh/known_hosts
+
+    - name: Pull latest code and build assets
+      run: |
+        ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_PUBLIC_IP }} << 'EOF'
+          cd ~/dotamatchresult
+          git pull origin main
+          composer install --no-dev --optimize-autoloader --no-interaction
+        EOF
+
+    - name: Deploy to production directory
+      run: |
+        ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_PUBLIC_IP }} << 'EOF'
+          sudo rsync -av --delete \
+            --exclude='.env' \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='vendor' \
+            --exclude='storage' \
+            ~/dotamatchresult/ /var/www/dotamatchresult/
+        EOF
+
+    - name: Install production dependencies
+      run: |
+        ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_PUBLIC_IP }} << 'EOF'
+          sudo composer install \
+            --working-dir=/var/www/dotamatchresult \
+            --no-dev \
+            --optimize-autoloader \
+            --no-interaction
+          cd /var/www/dotamatchresult && sudo npm install --omit=dev
+        EOF
+
+    - name: Fix permissions and optimize
+      run: |
+        ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SSH_PUBLIC_IP }} << 'EOF'
+          sudo chmod -R 775 /var/www/dotamatchresult/storage /var/www/dotamatchresult/bootstrap/cache
+          sudo chown -R www-data:www-data /var/www/dotamatchresult
+          cd /var/www/dotamatchresult && sudo php artisan optimize:clear
+          cd /var/www/dotamatchresult && sudo php artisan optimize
+        EOF

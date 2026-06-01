@@ -1,0 +1,249 @@
+[
+    {
+        "index": 0,
+        "startTime": 224,
+        "endTime": 264,
+        "duration": 40,
+        "outcome": "even",
+        "swing": "small",
+        "direKills": 1,
+        "radiantKills": 2,
+        "direGoldDelta": 1668,
+        "radiantGoldDelta": 1466,
+        "keyHeroes": [
+            "Pudge"
+        ]
+    },
+    {
+        "index": 1,
+        "startTime": 271,
+        "endTime": 311,
+        "duration": 40,
+        "outcome": "even",
+        "swing": "medium",
+        "direKills": 2,
+        "radiantKills": 2,
+        "direGoldDelta": 2040,
+        "radiantGoldDelta": 3042,
+        "keyHeroes": [
+            "Pudge",
+            "Shadow Shaman"
+        ]
+    },
+    {
+        "index": 2,
+        "startTime": 336,
+        "endTime": 388,
+        "duration": 52,
+        "outcome": "even",
+        "swing": "small",
+        "direKills": 2,
+        "radiantKills": 2,
+        "direGoldDelta": 2559,
+        "radiantGoldDelta": 3130,
+        "keyHeroes": [
+            "Ogre Magi",
+            "Windranger"
+        ]
+    },
+    {
+        "index": 3,
+        "startTime": 406,
+        "endTime": 446,
+        "duration": 40,
+        "outcome": "dire_win",
+        "swing": "medium",
+        "direKills": 3,
+        "radiantKills": 1,
+        "direGoldDelta": 1528,
+        "radiantGoldDelta": 3148,
+        "keyHeroes": []
+    },
+    {
+        "index": 4,
+        "startTime": 478,
+        "endTime": 523,
+        "duration": 45,
+        "outcome": "even",
+        "swing": "small",
+        "direKills": 2,
+        "radiantKills": 1,
+        "direGoldDelta": 3284,
+        "radiantGoldDelta": 3586,
+        "keyHeroes": [
+            "Windranger",
+            "Axe",
+            "Ogre Magi"
+        ]
+    },
+    {
+        "index": 5,
+        "startTime": 536,
+        "endTime": 573,
+        "duration": 37,
+        "outcome": "even",
+        "swing": "medium",
+        "direKills": 1,
+        "radiantKills": 2,
+        "direGoldDelta": 3070,
+        "radiantGoldDelta": 1794,
+        "keyHeroes": [
+            "Pudge",
+            "Windranger",
+            "Earthshaker"
+        ]
+    },
+    {
+        "index": 6,
+        "startTime": 566,
+        "endTime": 629,
+        "duration": 63,
+        "outcome": "even",
+        "swing": "big",
+        "direKills": 0,
+        "radiantKills": 5,
+        "direGoldDelta": 8750,
+        "radiantGoldDelta": 346,
+        "keyHeroes": [
+            "Pudge",
+            "Axe",
+            "Windranger"
+        ]
+    },
+    {
+        "index": 7,
+        "startTime": 645,
+        "endTime": 707,
+        "duration": 62,
+        "outcome": "dire_win",
+        "swing": "big",
+        "direKills": 4,
+        "radiantKills": 2,
+        "direGoldDelta": 3471,
+        "radiantGoldDelta": 8308,
+        "keyHeroes": [
+            "Windranger",
+            "Ogre Magi",
+            "Kunkka"
+        ]
+    },
+    {
+        "index": 8,
+        "startTime": 777,
+        "endTime": 822,
+        "duration": 45,
+        "outcome": "radiant_win",
+        "swing": "big",
+        "direKills": 0,
+        "radiantKills": 3,
+        "direGoldDelta": 4866,
+        "radiantGoldDelta": 1548,
+        "keyHeroes": [
+            "Windranger",
+            "Kunkka",
+            "Axe"
+        ]
+    },
+    {
+        "index": 9,
+        "startTime": 849,
+        "endTime": 889,
+        "duration": 40,
+        "outcome": "dire_win",
+        "swing": "big",
+        "direKills": 4,
+        "radiantKills": 1,
+        "direGoldDelta": 1566,
+        "radiantGoldDelta": 8391,
+        "keyHeroes": [
+            "Earthshaker",
+            "Windranger",
+            "Shadow Shaman"
+        ]
+    },
+    {
+        "index": 10,
+        "startTime": 1027,
+        "endTime": 1068,
+        "duration": 41,
+        "outcome": "dire_win",
+        "swing": "big",
+        "direKills": 3,
+        "radiantKills": 0,
+        "direGoldDelta": 3072,
+        "radiantGoldDelta": 7900,
+        "keyHeroes": [
+            "Earthshaker",
+            "Tusk",
+            "Axe"
+        ]
+    },
+    {
+        "index": 11,
+        "startTime": 1111,
+        "endTime": 1152,
+        "duration": 41,
+        "outcome": "radiant_win",
+        "swing": "big",
+        "direKills": 1,
+        "radiantKills": 3,
+        "direGoldDelta": 7212,
+        "radiantGoldDelta": 2212,
+        "keyHeroes": [
+            "Windranger",
+            "Tusk",
+            "Ogre Magi"
+        ]
+    },
+    {
+        "index": 12,
+        "startTime": 1283,
+        "endTime": 1339,
+        "duration": 56,
+        "outcome": "dire_win",
+        "swing": "big",
+        "direKills": 3,
+        "radiantKills": 1,
+        "direGoldDelta": 5844,
+        "radiantGoldDelta": 9112,
+        "keyHeroes": [
+            "Windranger",
+            "Kunkka",
+            "Pudge"
+        ]
+    },
+    {
+        "index": 13,
+        "startTime": 1472,
+        "endTime": 1521,
+        "duration": 49,
+        "outcome": "radiant_win",
+        "swing": "big",
+        "direKills": 1,
+        "radiantKills": 4,
+        "direGoldDelta": 11746,
+        "radiantGoldDelta": 4460,
+        "keyHeroes": [
+            "Kunkka",
+            "Pudge",
+            "Shadow Shaman"
+        ]
+    },
+    {
+        "index": 14,
+        "startTime": 1580,
+        "endTime": 1619,
+        "duration": 39,
+        "outcome": "radiant_win",
+        "swing": "big",
+        "direKills": 1,
+        "radiantKills": 3,
+        "direGoldDelta": 7816,
+        "radiantGoldDelta": 4890,
+        "keyHeroes": [
+            "Axe",
+            "Sniper",
+            "Kunkka"
+        ]
+    }
+]

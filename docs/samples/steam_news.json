@@ -1,0 +1,162 @@
+{
+    "appnews": {
+        "appid": 570,
+        "newsitems": [
+            {
+                "gid": "1823191198606637",
+                "title": "Dota 2 Update - 1/30/2026",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1823191198606637",
+                "is_external_url": true,
+                "author": "Jeff Hill",
+                "contents": "[p]Over the past few days we've addressed the following issues:[/p][list][*][p]Fixed a bug where Clinkz's Skeleton Archers were doing more than the intended amount of damage to buildings.[/p][/*][*][p]Fixed a bug where Slark's Depth Shroud was not applying the intended move speed and health regen to allies.[/p][/*][*][p]Fixed a bug where Spectre's Shadow Step had an interaction with attack range extension items, which was leading to a longer than intended duration.[/p][/*][*][p]Fixed a bug where Muerta's Gunslinger bonus damage talent did not scale when applied to illusions, leading to more damage than intended.[/p][/*][*][p]Fixed a bug where Turbo games would sometimes deduct 2 gold on ban phase completion.[/p][/*][*][p]Fixed Largo's Croak of Genius damage proccing other abilities (Batrider's Sticky Napalm, Searing Signet, etc.)[/p][/*][*][p]Fixed a performance issue with network encoding which substantially reduces the number of 'server hitch' frames.[/p][/*][*][p]Restructured how cosmetic items interact with Dota network traffic: Most cosmetic items now take zero network bandwidth after game start, improving both client and server performance.[/p][/*][*][p]Fixed a bug where cosmetic items were being created every time a hero spawned, gradually reducing performance.[/p][/*][*][p]Items equipped in only ability effects slots no longer appear as if equipped on the hero in post-game or MVP screens.[/p][/*][/list]",
+                "feedlabel": "Community Announcements",
+                "date": 1769814739,
+                "feedname": "steam_community_announcements",
+                "feed_type": 1,
+                "appid": 570,
+                "tags": [
+                    "patchnotes",
+                    "ModAct_1278681683_1769815059_0",
+                    "mod_reviewed",
+                    "ModAct_1278681683_1769815209_0",
+                    "ModAct_1278681683_1769817634_4",
+                    "ModAct_1278681683_1769821137_4",
+                    "ModAct_1847323374_1770054824_4",
+                    "mod_require_rereview"
+                ]
+            },
+            {
+                "gid": "1822556746157843",
+                "title": "7.40c Gameplay Patch",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1822556746157843",
+                "is_external_url": true,
+                "author": "eugenep",
+                "contents": "[p]Patch 7.40c is out now and you can check out the patch notes [url=\"https://www.dota2.com/patches/7.40c\"]here[/url]. [/p][p][/p][p]As a reminder, the Monster Hunter event ends February 6, 2026, after which you'll no longer be able to earn progress or craft items. Today's update also adds new Universal Material packs for purchase, providing an alternative way to get materials and finish crafting any remaining items before the event ends.[/p][p][/p][p]In addition, we've addressed the following issues:  [/p][list][*][p]Fixed Blood Grenade bonus health not being updated when stack count changes[/p][/*][*][p]Fixed Helm of the Dominator and Helm of the Overlord granting experience to Lone Druid's Spirit Bear, instead of Lone Druid[/p][/*][*][p]Fixed Helm of the Overlord not granting bounty and experience for dominating creeps[/p][/*][*][p]Fixed Illusion Rune not disjointing projectiles upon activating[/p][/*][*][p]Fixed physical lifesteal working when attacking a unit with an all-damage barrier[/p][/*][*][p]Fixed Quick Buy sometimes not removing queued items when recipes are combined[/p][/*][*][p]Fixed Smoke of Deceit being castable from the stash[/p][/*][*][p]Fixed Anti-Mage with Shard and Magebane's Mirror Facet instantly killing Spectre when using Counterspell while walking on a Spectral Dagger path targeted at another unit.[/p][/*][*][p]Fixed Arc Warden's Tempest Double being able to pick talents[/p][/*][*][p]Fixed Bounty Hunter unable to target Spirit Bear with Friendly Shadow[/p][/*][*][p]Fixed Brewmaster's level 25 talent not applying to brewlings[/p][/*][*][p]Fixed Clinkz's Infernal Shred ignoring more armor than intended[/p][/*][*][p]Fixed Doom not getting Ancient Prowler Shaman's Petrify ability when devouring the neutral[/p][/*][*][p]Fixed Largo's Encore sometimes not refreshing an existing buff on yourself or the target[/p][/*][*][p]Fixed Morphling not losing the bonus damage from unused stones when replicating back from Earth Spirit[/p][/*][*][p]Fixed Morphling perpetually spawning Monkey King's Wukong's Command soldiers when replicating Monkey King with Aghanim's Scepter[/p][/*][*][p]Fixed Medusa being able to get infinite health when purchasing a heart while Lifestealer has infested medusa and then using Shadow Demon's Disseminate with the Promulgate Facet targeting Medusa[/p][/*][*][p]Fixed Spectre Arcana's idle and idle rare animations[/p][/*][/list]",
+                "feedlabel": "Community Announcements",
+                "date": 1769041258,
+                "feedname": "steam_community_announcements",
+                "feed_type": 1,
+                "appid": 570,
+                "tags": [
+                    "patchnotes"
+                ]
+            },
+            {
+                "gid": "1819386365123191",
+                "title": "Former Dota 2 pro is selling his TI championship ring on Ebay for some serious cash, but it's not because he's \"desperate\"",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/PCGamesN/1819386365123191",
+                "is_external_url": true,
+                "author": "editor@pcgamesn.com",
+                "contents": "<img width=\"900\" height=\"507\" src=\"https://www.pcgamesn.com/wp-content/sites/pcgamesn/2026/01/dota-2-the-international-ti3-championship-ring-admiralbulldog-sold-ebay-900x506.jpg\"/><p>I didn't expect my first news article of 2026 to be this one. Former <strong>Dota 2</strong> pro Henrik 'AdmiralBulldog' Ahnberg is selling his TI 2013 championship ring on Ebay - yes, I double took, too. But the listing is indeed legitimate, as confirmed by the man himself, who also states that the sale isn't out of \"desperation.\" Instead, it's simply to generate some cash, and going by the current figure, he'll likely make plenty of it.</p>\n<p><a href=\"https://www.pcgamesn.com/dota-2/T13-ring-ebay\">Read the rest of the story...</a></p>\n<p>RELATED LINKS:<br />\n<a href=\"https://www.pcgamesn.com/dota-2/largo-patch-7-40\">Dota 2 patch 7.40 adds new hero Largo, whose ultimate has one of the coolest mechanics I've seen in ages</a><br />\n<a href=\"https://www.pcgamesn.com/dota-2/monster-hunter-collab\">I never thought I'd see Dota 2 and Monster Hunter in the same sentence, but the MOBA's biggest collab ever just dropped out of nowhere</a><br />\n<a href=\"https://www.pcgamesn.com/dota-2/gabe-newell-ti-2025-speech\">People \"talk s**t\" to Gabe Newell when he plays Dota 2, but he's okay with it</a></p>",
+                "feedlabel": "PCGamesN",
+                "date": 1767607133,
+                "feedname": "PCGamesN",
+                "feed_type": 0,
+                "appid": 570
+            },
+            {
+                "gid": "1819386365105311",
+                "title": "7.40b Gameplay Patch",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1819386365105311",
+                "is_external_url": true,
+                "author": "flynnch",
+                "contents": "[p]Patch 7.40b is out now and you can check out the patch notes [url=\"https://www.dota2.com/patches/7.40b\"]here[/url]. \n\nIn addition, over the last few days we've addressed the following issues:\n\n[/p][list][*][p]Fixed Dota+ Talent Pickrates and Winrates not properly aggregating[/p][/*][*][p]Fixed \"Learn Ability\" toggle not closing automatically after level 24[/p][/*][*][p]Fixed incorrect hitboxes for multiple Observer and Sentry ward cosmetics[/p][/*][*][p]Fixed Smoke of Deceit not working from the backpack if it started in the backpack[/p][/*][*][p]Fixed Rattlecage damage not being classified as reflection[/p][/*][*][p]Fixed Rattlecage not working if crafted while dead[/p][/*][*][p]Fixed Bloodseeker's Scepter upgrade not having the correct cooldown[/p][/*][*][p]Fixed Bounty Hunter revealing his location if casting Track while invisible in the fog of war[/p][/*][*][p]Fixed Brewmaster's Aghanim's Shard Health Regen always being active below 50% health, even if the strong drink wasn't drunk[/p][/*][*][p]Fixed Skeletons summoned by Clinkz having incorrect attack priority[/p][/*][*][p]Fixed Clockwerk Cogs not bouncing enemies properly with the Expanded Armature Facet[/p][/*][*][p]Fixed Enchantress Rabble Rouser not applying to skeletons summoned by Dark Troll Summoner and Shard Golems[/p][/*][*][p]Fixed Juggernaut's Omnislash and other abilities that require continuous vision over their target not functioning during Mars' Arena of Blood and other abilities that conditionally remove vision sharing between allies[/p][/*][*][p]Fixed Kez Bleed Stack getting removed if the impale was a backstab[/p][/*][*][p]Fixed Kez impale failing causing it trigger incorrectly later[/p][/*][*][p]Fixed Kez being unable to trigger Raven's Veil mark with his first attack after casting if it was at his maximum attack range[/p][/*][*][p]Fixed Kez being able to trigger Marks twice during Raptor Dance with specific settings and items configuration[/p][/*][*][p]Fixed Largo's Catchy Lick not dispelling allies if they are under the effect of Black King Bar[/p][/*][*][p]Fixed Largo's Catchy Lick dispelling High Five[/p][/*][*][p]Fixed Largo's Amphibian Rhapsody HUD not showing for people who have disabled map_enable_portrait_worlds[/p][/*][*][p]Fixed Largo's Froglings blocking neutral camp respawns[/p][/*][*][p]Fixed Lotus Orb not dispelling when copied by Largo's Aghanim's Shard[/p][/*][*][p]Fixed Linken's Sphere not being copied by Largo's Aghanim's Shard[/p][/*][*][p]Fixed Lina's Combustion also combusting Croak of Genius damage[/p][/*][*][p]Fixed Spirit Bear not breaking Phantom Assassin's Blur[/p][/*][*][p]Fixed Oracle's Fate's Edict interactions with Debuff Immunity[/p][/*][*][p]Fixed Oracle being unable to dispel the disarm portion of Fate's Edict on allies[/p][/*][*][p]Fixed Phantom Lancer's shard illusion not benefting from Illusory Armaments[/p][/*][*][p]Fixed Rubick losing abilities when dying or stealing another ability while casting Amphibian Rhapsody with Aghanim's Scepter[/p][/*][*][p]Fixed Shadow Demon Disruption effects not being visible if Shadow Demon himself is in Fog of War[/p][/*][*][p]Fixed Spectre's level 25 talent not applying to all types of illusions[/p][/*][*][p]Fixed Tiny's Avalanche lasting 0.2s longer than intended[/p][/*][*][p]Fixed Troll Warlord's Battle Trance dispelling Ice Blast when Ice Blast's kill threshold is triggered while Troll Warlord is stunned and Troll Warlord has Battle Trance cast queued[/p][/*][*][p]Fixed Ursa roaring when casting Earthshock with Aghanim's Shard[/p][/*][*][p]Fixed Visage Familiar recall ability not working[/p][/*][/list]",
+                "feedlabel": "Community Announcements",
+                "date": 1766531102,
+                "feedname": "steam_community_announcements",
+                "feed_type": 1,
+                "appid": 570,
+                "tags": [
+                    "patchnotes"
+                ]
+            },
+            {
+                "gid": "1818752592135551",
+                "title": "Dota 2 patch 7.40 adds new hero Largo, whose ultimate has one of the coolest mechanics I've seen in ages",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/PCGamesN/1818752592135551",
+                "is_external_url": true,
+                "author": "editor@pcgamesn.com",
+                "contents": "<img width=\"900\" height=\"507\" src=\"https://www.pcgamesn.com/wp-content/sites/pcgamesn/2025/12/dota-2-largo-patch-7-40-new-hero-invulnerability-changes-map-terrain-collectors-cache-winter-900x506.jpg\"/><p>In a surprise to absolutely no one, my favorite Dungeons and Dragons class is Bard. As both a musician and support main, it's the perfect blend of buffs and damage, with a dash of charisma on the side. <strong>Dota 2</strong> has always kept itself pretty close to its fantasy roots, with characters like Dragon Knight, Drow Ranger, and Enchantress, but now it's got Largo, who may as well be 'Frog Bard.' Performing (pun intended) exactly as expected, his focus is on buffing allies and bestowin' mighty fine curses on his foes, while his adorable little froglings help to deal damage. As someone who's just got back into League of Legends, I can feel Valve's <a href=\"https://www.pcgamesn.com/which-best-moba\">MOBA</a> calling to me.</p>\n<p><a href=\"https://www.pcgamesn.com/dota-2/largo-patch-7-40\">Read the rest of the story...</a></p>\n<p>RELATED LINKS:<br />\n<a href=\"https://www.pcgamesn.com/dota-2/monster-hunter-collab\">I never thought I'd see Dota 2 and Monster Hunter in the same sentence, but the MOBA's biggest collab ever just dropped out of nowhere</a><br />\n<a href=\"https://www.pcgamesn.com/dota-2/gabe-newell-ti-2025-speech\">People \"talk s**t\" to Gabe Newell when he plays Dota 2, but he's okay with it</a><br />\n<a href=\"https://www.pcgamesn.com/dota-2/system-requirements\">Dota 2 system requirements</a></p>",
+                "feedlabel": "PCGamesN",
+                "date": 1765879060,
+                "feedname": "PCGamesN",
+                "feed_type": 0,
+                "appid": 570
+            },
+            {
+                "gid": "1818752592134412",
+                "title": "Introducing Largo and Patch 7.40",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1818752592134412",
+                "is_external_url": true,
+                "author": "kyled",
+                "contents": "[img]{STEAM_CLAN_IMAGE}/3703047/c09b13cda87a548b83b626fb33a32efd7895c634.png[/img]\n\nDota is an ensemble cast, but keen observers looking through the collection of rogues, wizards, druids, and knights (not to mention two characters [i]named[/i] \"ranger\") may have noticed the absence of that most maligned of hero classes: the bard. At least, up until now.\n\nIntroducing Dota's newest hero: Largo, the bard.\n\nUnlike bards with your traditional bard powers (singing about current events and chord changes), Largo is the shamanic head of the bardmonk order. He tailors every song to his exact circumstances, raising his allies' spirits or, if necessary, their foot speed as they run toward battle (or away). As a frog, his prehensile tongue has, shall we say, all kinds of tricks. You can [url=http://dota2.com/largocomic]read a little about his past[/url], or you can help explore his future in Dota right now.\n\nToday's update also includes [url=https://dota2.com/largo]gameplay patch 7.40[/url]. (As is tradition, the patch notes are too long to fit in this blog, so we made a whole site to hold them and show some highlights.)\n\nLargo is taking over the main menu in Dota for a bit, but the [url=https://store.steampowered.com/curator/34827959]Monster Hunter[/url] event is still ongoing and there's plenty of time left to craft whatever you're working towards. Since it's the holidays, we're putting the [url=https://www.dota2.com/newsentry/555756515113304416]Dota 2 x Monster Hunter[/url] Expedition Pack on sale and granting everyone who owned it already a special early-purchase voucher material bundle. On top of that, we're giving [i]everyone[/i] who logs in over the holidays a free bundle of crafting materials. Happy hunting!\n\nSpeaking of holiday festivities, some of the usual shenanigans have made their reappearance, reminding us all of the true spirit of the holidays: pelting your enemies in the face with snowballs.\n\nWe hope everybody in the Dota community has a safe and happy holiday, and we'll see you next year.",
+                "feedlabel": "Community Announcements",
+                "date": 1765843654,
+                "feedname": "steam_community_announcements",
+                "feed_type": 1,
+                "appid": 570
+            },
+            {
+                "gid": "1818752592128752",
+                "title": "The International 2026 Live Event Broadcast RFP and Broadcast License Requests",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1818752592128752",
+                "is_external_url": true,
+                "author": "Dota*****MM",
+                "contents": "The International returns to Shanghai, China in August 2026, and we’d like to invite all companies interested in producing and distributing regional language broadcasts of The International 2026 to apply now.  \n\nFor the Live Event Broadcast Production of this year's show, we’ll be accepting proposals for Russian and Spanish language broadcast partners. The RFP (Request For Proposal) documentation and instructions for submissions can be found [url=https://cdn.cloudflare.steamstatic.com/apps/dota2/assets/RFP_TI_2026.pdf]here[/url].   \n \nFor those seeking additional licenses and feeds, please fill out the form below that pertains to the correct request: \n\n[list]\n[*]Production companies seeking a commercial license to produce a regional language broadcast of The International 2026 without additional access to the event can apply[url=https://docs.google.com/forms/d/e/1FAIpQLSdT8MilI4gsOduPisCXQPZiTH_VoXTNhXMoYvnYUBjPl-neIw/viewform] here[/url]. \n\n[*]Streaming platforms interested in restreaming the official broadcast feeds to their platform can apply [url=https://docs.google.com/forms/d/e/1FAIpQLScpIiTAWg-oT2cT8lSeONoReY1iK0Vu4A5WuDVGOSk-K-a22w/viewform]here[/url].[/list]\n\nFans interested in trying their own hands at casting are welcome to create strictly noncommercial casts from DotaTV that follow the [url=https://www.dota2.com/dotatv]Dota 2 Community Streaming License[/url], and do not need to make an official request. \n\nPlease reach out to theinternationalrfp@valvesoftware.com with any additional questions.  \n\nThanks in advance to everyone interested in working with us to bring The International 2026 to life.",
+                "feedlabel": "Community Announcements",
+                "date": 1765574894,
+                "feedname": "steam_community_announcements",
+                "feed_type": 1,
+                "appid": 570,
+                "tags": [
+                    "hide_store",
+                    "hide_library_overview",
+                    "hide_library_detail"
+                ]
+            },
+            {
+                "gid": "1815580768422774",
+                "title": "I never thought I'd see Dota 2 and Monster Hunter in the same sentence, but the MOBA's biggest collab ever just dropped out of nowhere",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/PCGamesN/1815580768422774",
+                "is_external_url": true,
+                "author": "editor@pcgamesn.com",
+                "contents": "<img width=\"900\" height=\"507\" src=\"https://www.pcgamesn.com/wp-content/sites/pcgamesn/2025/11/dota-2-monster-hunter-collab-900x506.jpg\"/><p><strong>Dota 2</strong> used to be an absolute fiend for a good crossover. From Final Fantasy to Fallout, Deus Ex to Darkest Dungeon, Valve's hit <a href=\"https://www.pcgamesn.com/which-best-moba\">MOBA</a> has been inundated with cosmetic goods and iconic announcer packs over the years. Hearing Morty crash out over a Rampage never gets old, but after seven years without a third-party peep, it's certainly time for some new blood in the collab arena. The good news, if you're a Monster Hunter fan, is that Valve and Capcom have banded together to create some pretty sweet in-game goodies for you to craft up. Oh, and it's live right now.</p>\n<p><a href=\"https://www.pcgamesn.com/dota-2/monster-hunter-collab\">Read the rest of the story...</a></p>\n<p>RELATED LINKS:<br />\n<a href=\"https://www.pcgamesn.com/dota-2/gabe-newell-ti-2025-speech\">People \"talk s**t\" to Gabe Newell when he plays Dota 2, but he's okay with it</a><br />\n<a href=\"https://www.pcgamesn.com/dota-2/system-requirements\">Dota 2 system requirements</a><br />\n<a href=\"https://www.pcgamesn.com/dota-2/7-39-patch-notes-spring-forward-2025\">The Dota 2 7.39 patch brings hero reworks and a serious quality-of-life upgrade</a></p>",
+                "feedlabel": "PCGamesN",
+                "date": 1762860995,
+                "feedname": "PCGamesN",
+                "feed_type": 0,
+                "appid": 570
+            },
+            {
+                "gid": "1815580768403675",
+                "title": "Dota x Monster Hunter",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1815580768403675",
+                "is_external_url": true,
+                "author": "Unicorn Princess",
+                "contents": "[img src=\"{STEAM_CLAN_IMAGE}/3703047/98be0d0a60eca8edbad91ec0050918f83ea462e2.png\"][/img]\n\n[p]It's open season on the world's most dangerous heroes, and you're just the hero we need to track them all down. We're happy to announce a massive Dota/[url=\"https://store.steampowered.com/curator/34827959\"]Monster Hunter[/url] crossover with new sets, new pets, a new in-game hunt and crafting system, and of course monsters. (For everyone who thinks Dragon Knight turning into a dragon is awesome but would be [i]more[/i] awesome if he turned into Rathalos instead, great news: Capcom was just as excited as we were to make this happen).[/p]\n[p]There are six Monster Hunter-themed item sets to collect in all, each bringing a classic Monster Hunter armor set into the Dota world, and each with three craftable alternate versions. There's also a new Palico courier with craftable costumes, and even your very own pet Poogie with craftable outfits. Your Poogie will hang out in your base, waiting to give you love whenever you return (and, assuming he is house trained, not pooping on your base).[/p]\n[p]The core version of each hero set is available to all Dota players for free, and can be crafted once you've harvested the necessary materials from hero hunts. In addition, the Hero Atlas will help you track your progress, explore hero lore, and gather dispatches from the farthest realms, penned by Axe's loyal scribe Goodkind.[/p]\n[p]For those that want more, the Expedition Pack includes more of everything: usable Monster Hunter monsters (Rathalos for Dragon Knight and the Bullfango for Beastmaster), a Monster Hunter music pack and seasonal spray collection, and a bundle of crafting materials to get you started. Expedition Pack holders can also craft exclusive Poogie, Palico, and hero set variants with custom ambient and Immortal effects.[/p]\n[p]The hunt is on, and will run for the next three months. Get in the game, vanquish your enemies, and transform your victories into new items. Oh, and look out for monsters.[/p]",
+                "feedlabel": "Community Announcements",
+                "date": 1762812389,
+                "feedname": "steam_community_announcements",
+                "feed_type": 1,
+                "appid": 570
+            },
+            {
+                "gid": "1813041031215262",
+                "title": "Dota 2 Update - 10/09/2025",
+                "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1813041031215262",
+                "is_external_url": true,
+                "author": "flynnch",
+                "contents": "[p]Since the 7.39e gameplay patch, we've addressed the following issues:[/p][list][*][p]Items on trade cooldown can no longer be listed on the Steam Market[/p][list][*][p]Removed separate \"Market Cooldown\" timer from item tooltips as it is no longer relevant[/p][/*][/list][/*][*][p]Fixed people being able to find the server id of non-friends playing matches[/p][/*][*][p]Fixed relic progress displaying for the enemy team[/p][/*][*][p]Fixed server crash involving Helm of the Dominator[/p][/*][*][p]Fixed various interactions with ethereal state and debuff immunity[/p][/*][*][p]Fixed an issue where the number of charges for an ability could be displayed as \"...\"[/p][/*][*][p]Fixed Kez base agility being unintentionally decreased[/p][/*][*][p]Fixed Kez's Falcon Rush removing Parry[/p][/*][*][p]Fixed various issues for Kez's Aghanim's Scepter[/p][/*][*][p]Ability Draft Fixes[/p][list][*][p]Shadow Demon: Shadow Servant no longer spawns illusions from clones created with Wukong's Command[/p][/*][*][p]Io: Spirits Aghanim's Scepter no longer passively creates spirits around clones created with Wukong's Command[/p][/*][/list][/*][*][p]Fixed a number of visual issues with the following Collector's Cache Vote sets[/p][list][*][p]Pudge's \"Pudgette\"[/p][/*][*][p]Arc Warden's \"Splinter of the Primordial Origin\"[/p][/*][*][p]Centaur Warrunner's \"Knight of the Lilies\"[/p][/*][/list][/*][/list]",
+                "feedlabel": "Community Announcements",
+                "date": 1760033899,
+                "feedname": "steam_community_announcements",
+                "feed_type": 1,
+                "appid": 570,
+                "tags": [
+                    "patchnotes"
+                ]
+            }
+        ],
+        "count": 3218
+    }
+}
