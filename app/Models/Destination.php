@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Destination extends Model
@@ -54,5 +55,10 @@ class Destination extends Model
     public static function aiTokenForCode(string $code): ?string
     {
         return static::forCode($code)?->ai_bot_token;
+    }
+
+    public function destinationChallenges(): HasMany
+    {
+        return $this->hasMany(DestinationChallenge::class);
     }
 }

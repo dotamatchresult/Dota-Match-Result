@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             MemberSeeder::class,
             SettingSeeder::class,
             DestinationSeeder::class,
+            ChallengeSeeder::class,
         ]);
 
         // Sync heroes from OpenDota API

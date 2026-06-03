@@ -17,4 +17,22 @@ return [
     ],
 
     'image_preview' => env('IMAGE_PREVIEW_URL', 'https://image-preview-delta.vercel.app/api/preview'),
+
+    'daily_challenge' => [
+        'max_active_per_destination' => 5,
+        'assignment_time' => '00:00',
+        'announcement_time' => '08:00',
+        'review_time' => '23:00',
+        'timezone' => 'Asia/Jakarta',
+        'evaluators' => [
+            'total_kills' => 'total_kills',
+            'total_denies' => 'total_denies',
+            'total_heal' => 'total_heal',
+            'hero_win' => 'hero_win',
+            'bkb_win' => 'bkb_win',
+            'last_hits' => 'last_hits',
+            'zero_death_win' => 'zero_death_win',
+            'fast_win' => 'fast_win',
+        ],
+    ],
 ];
