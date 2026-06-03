@@ -681,6 +681,7 @@ class ProcessMatchNotification implements ShouldQueue
                 ["🪜 Calon MVP", "🪑 MVP — __Most Vulnerable Player__"],
                 ["🫡 Wani Maju War", "🙄 Perlu Bimbingan"],
                 ["🧗🏻 Kerjo Tenanan", "🥴 Kurang Kerjaan"],
+                ["🪦 Sok Jago, Gak Menang", "🐷 Kroco Beban"],
             ];
             [$titleBest, $titleWorst] = collect($losingTitles)->random();
 
