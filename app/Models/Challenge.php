@@ -38,4 +38,12 @@ class Challenge extends Model
     {
         return $this->hasMany(DestinationChallenge::class);
     }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<Challenge>  $query
+     */
+    public function scopeActive($query): void
+    {
+        $query->where('is_active', true);
+    }
 }

@@ -166,3 +166,9 @@ Schedule::command('matches:daily-reminder')
     ->dailyAt('23:59')
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('challenges:assign-daily')
+    ->dailyAt('00:00')
+    ->timezone(config('dota.daily_challenge.timezone', 'Asia/Jakarta'))
+    ->withoutOverlapping()
+    ->runInBackground();
