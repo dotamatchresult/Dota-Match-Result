@@ -61,8 +61,8 @@ Table: `challenge_notifications` — tracks scheduled and sent messages
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | bigint PK | auto-increment |
-| `destination_challenge_id` | FK → destination_challenges.id | cascade on delete |
-| `type` | string | `assigned_announcement`, `completed`, `failed_review`, `progress_milestone` |
+| `destination_challenge_id` | FK → destination_challenges.id (nullable) | cascade on delete; nullable for `backlog_full` notifications |
+| `type` | string | `assigned_announcement`, `completed`, `failed_review`, `progress_milestone`, `backlog_full` |
 | `scheduled_at` | timestamp (nullable) | When notification should be sent (for deferred reviews) |
 | `sent_at` | timestamp (nullable) | When actually delivered |
 | `status` | string | `pending`, `sent`, `cancelled` (default `pending`) |
@@ -72,15 +72,19 @@ Table: `challenge_notifications` — tracks scheduled and sent messages
 
 Indexes: composite(`destination_challenge_id`, `type`, `status`), composite(`status`, `scheduled_at`)
 
+> **Step 3 migration**: `destination_challenge_id` made nullable via `2026_06_05_012003_make_destination_challenge_id_nullable_on_challenge_notifications` to support `backlog_full` notifications.
+
 ### **1.5 Config in `config/dota.php`**
 
 ```php
 'daily_challenge' => [
+    'enabled' => env('DAILY_CHALLENGE_ENABLED', true),
     'max_active_per_destination' => 5,
     'assignment_time' => '00:00',
     'announcement_time' => '08:00',
     'review_time' => '23:00',
     'timezone' => 'Asia/Jakarta',
+    'assignment_history_days' => 14,
     'evaluators' => [
         'total_kills' => 'total_kills',
         'total_denies' => 'total_denies',
@@ -132,6 +136,14 @@ class Challenge extends Model
     public function destinationChallenges(): HasMany
     {
         return $this->hasMany(DestinationChallenge::class);
+    }
+
+    /**
+     * Scope to only active challenges.
+     */
+    public function scopeActive($query): void
+    {
+        $query->where('is_active', true);
     }
 }
 ```
@@ -291,42 +303,65 @@ public function destinationChallenges(): HasMany
 
 ---
 
-# **Step 3: Cron Jobs / Scheduler**
+# Step 3: Challenge Assignment Engine ✅ Implemented
 
-### **3.1 At 00:00 – Generate daily challenges**
+### **3.1 At 00:00 – Generate daily challenges** ✅
 
-* Query `Challenge` pool → pick random active challenge
-* Create `DailyChallenge` for each destination
-* Set `current_requirement` = `base_requirement`
+Implemented via `challenges:assign-daily` Artisan command + `ChallengeAssignmentService`.
 
-### **3.2 At 08:00 – Announce challenge**
+**Files created:**
+- `app/Services/DailyChallenge/ChallengeAssignmentService.php` — Core assignment logic
+- `app/Console/Commands/AssignDailyChallenges.php` — Artisan command
 
-* Send message to each destination with the challenge description
+**Scheduler** (in `routes/console.php`):
+```php
+Schedule::command('challenges:assign-daily')
+    ->dailyAt('00:00')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping()
+    ->runInBackground();
+```
 
-### **3.3 During the day – Track progress**
+**Business rules implemented:**
+- **Max active limit** (5 per destination): Skips assignment and creates `backlog_full` notification when at capacity
+- **Daily idempotency**: Checks `(destination_id, assigned_date)` before assignment — never double-assigns
+- **14-day cooldown**: Prefers challenges not assigned to the destination in the last `assignment_history_days` days
+- **Pool exhaustion fallback**: If all active challenges are within cooldown, falls back to any active challenge
+- **Random selection**: Uses `inRandomOrder()` among eligible candidates
+- **DB transaction**: Creates `DestinationChallenge` + `ChallengeEvent` (type: `assigned`) + `ChallengeNotification` (type: `assigned_announcement`) atomically
+- **Chunked iteration**: Processes destinations in chunks of 100 via `chunkById()`
+- **Structured logging**: Logs all outcomes (assigned, skipped-idempotency, skipped-limit, skipped-no-challenge, errors)
 
-* Hook into your match fetch system
-* After a match is retrieved and parsed:
+**Key design decision**: Uses `whereDate('assigned_date', ...)` instead of `where('assigned_date', ...)` for cross-database compatibility (SQLite tests store date-cast values with time component).
 
-  1. Check if it affects an active `DailyChallenge`
-  2. Update `progress` JSON
-  3. If requirement met → set status completed, send congrats message
+### **3.2 At 08:00 – Announce challenge** ⏳ Queue Only
 
-### **3.4 At 23:00 – End of day check**
+- `ChallengeNotification` records are created with `type=assigned_announcement`, `status=pending`, `scheduled_at=08:00 Asia/Jakarta`
+- Actual message sending (Fonnte/Telegram) is deferred to Step 5
 
-* For each `DailyChallenge`:
+### **3.3 During the day – Track progress** 🔜 Step 4
 
-  * If not completed:
+Not yet implemented. Will hook into match fetch pipeline in Step 4.
 
-    * Increment `current_requirement` by `increment` (cap at `max_requirement`)
-    * Send sarcastic notification to destination
-  * If completed:
+### **3.4 At 23:00 – End of day check** 🔜 Step 4
 
-    * Send recap message
+Not yet implemented. Review/increment logic deferred to Step 4.
+
+### **3.5 Tests** ✅
+
+`tests/Feature/AssignDailyChallengesCommandTest.php` — 8 tests, 47 assertions:
+- Assignment created (with event + notification)
+- Max active limit enforced (backlog notification created)
+- Daily idempotency (run twice → one assignment)
+- Cooldown logic (recently assigned challenges excluded)
+- Pool exhaustion fallback (succeeds when all within cooldown)
+- Disabled config exits early
+- No active challenges handled gracefully
+- Multiple destinations each receive assignment
 
 ---
 
-# **Step 4: Challenge Logic**
+# Step 4: Challenge Logic
 
 ### **4.1 Progress calculation**
 
