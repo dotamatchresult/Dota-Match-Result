@@ -30,7 +30,7 @@ return [
             'total_kills' => 'total_kills',
             'total_denies' => 'total_denies',
             'total_heal' => 'total_heal',
-            'hero_win' => 'hero_win',
+            'hero_win' => \App\Services\ChallengeEvaluators\HeroWinEvaluator::class,
             'bkb_win' => 'bkb_win',
             'last_hits' => 'last_hits',
             'zero_death_win' => 'zero_death_win',

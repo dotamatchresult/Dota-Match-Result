@@ -18,6 +18,7 @@ class DestinationChallenge extends Model
         'assigned_date',
         'status',
         'current_requirement',
+        'current_progress',
         'progress_data',
         'failed_days',
         'completed_at',
@@ -30,6 +31,7 @@ class DestinationChallenge extends Model
             'progress_data' => 'array',
             'completed_at' => 'datetime',
             'current_requirement' => 'integer',
+            'current_progress' => 'integer',
             'failed_days' => 'integer',
         ];
     }

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\EvaluateChallengesJob;
 use App\Jobs\ProcessMatchNotification;
 use App\Models\DotaMatch;
 use App\Models\Member;
@@ -150,6 +151,9 @@ class CheckMatchesCommand extends Command
             // Dispatch notification job
             ProcessMatchNotification::dispatch($dotaMatch);
 
+            // Dispatch challenge evaluation job
+            EvaluateChallengesJob::dispatch($dotaMatch);
+
             $processedCount++;
         }
 
@@ -223,6 +227,9 @@ class CheckMatchesCommand extends Command
 
         // Dispatch notification job
         ProcessMatchNotification::dispatch($dotaMatch);
+
+        // Dispatch challenge evaluation job
+        EvaluateChallengesJob::dispatch($dotaMatch);
 
         $memberNames = $matchMembers->pluck('name')->join(', ');
         $this->info("Match {$matchId} processed successfully!");
