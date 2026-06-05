@@ -173,6 +173,12 @@ Schedule::command('challenges:assign-daily')
     ->withoutOverlapping()
     ->runInBackground();
 
+Schedule::command('challenges:review-daily')
+    ->dailyAt(config('dota.daily_challenge.review_time', '23:00'))
+    ->timezone(config('dota.daily_challenge.timezone', 'Asia/Jakarta'))
+    ->withoutOverlapping()
+    ->runInBackground();
+
 Schedule::command('challenges:send-notifications')
     ->everyMinute()
     ->withoutOverlapping()

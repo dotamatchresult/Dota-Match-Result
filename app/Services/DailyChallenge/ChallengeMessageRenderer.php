@@ -19,6 +19,7 @@ class ChallengeMessageRenderer
             'assigned_announcement' => $this->renderAssignedAnnouncement($notification),
             'completed' => $this->renderSingleCompleted($notification),
             'backlog_full' => $this->renderBacklogFull(),
+            'recap' => $this->renderRecap($notification),
             default => '',
         };
     }
@@ -94,6 +95,47 @@ class ChallengeMessageRenderer
         return "🎉 TANTANGAN SELESAI\n\n"
             ."✅ {$description}\n\n"
             .'Kerja bagus.';
+    }
+
+    /**
+     * Render the recap notification type.
+     *
+     * Only sent when there are failed challenges. Reads failed challenge
+     * details from the notification payload.
+     */
+    private function renderRecap(ChallengeNotification $notification): string
+    {
+        $payload = $notification->payload;
+        $failedCount = (int) ($payload['failed_count'] ?? 0);
+        $failedChallenges = $payload['failed_challenges'] ?? [];
+
+        if ($failedCount === 0 || empty($failedChallenges)) {
+            return '';
+        }
+
+        $encouragement = match (true) {
+            $failedCount === 1 => 'Masih bisa dikejar besok.',
+            $failedCount >= 2 && $failedCount <= 3 => 'Yuk lebih fokus besok.',
+            default => 'Evaluasi strategi kalian.',
+        };
+
+        $lines = [
+            "🪦 {$failedCount} tantangan gak selesai",
+            '',
+            $encouragement,
+            '',
+            'Sebagai hukuman, tantangan kalian ditambah 👺:',
+        ];
+
+        foreach ($failedChallenges as $challenge) {
+            $description = $challenge['description'] ?? '';
+            $progress = $challenge['progress'] ?? 0;
+            $requirement = $challenge['requirement'] ?? 0;
+
+            $lines[] = "- {$description} ({$progress}/{$requirement} selesai)";
+        }
+
+        return implode("\n", $lines);
     }
 
     /**

@@ -47,7 +47,7 @@ Table: `challenge_events` — append-only; no updated_at
 | `id` | bigint PK | auto-increment |
 | `destination_challenge_id` | FK → destination_challenges.id | cascade on delete |
 | `match_id` | FK → dota_matches.id (nullable) | nullOnDelete; null for non-match events (assigned, incremented) |
-| `type` | string | `assigned`, `progress`, `incremented`, `completed` |
+| `type` | string | `assigned`, `progress`, `incremented`, `completed`, `failed_review` |
 | `value_before` | integer (nullable) | Progress before event |
 | `value_after` | integer (nullable) | Progress after event |
 | `payload` | json (nullable) | Additional context (e.g. which metric changed) |
@@ -62,7 +62,7 @@ Table: `challenge_notifications` — tracks scheduled and sent messages
 |--------|------|-------|
 | `id` | bigint PK | auto-increment |
 | `destination_challenge_id` | FK → destination_challenges.id (nullable) | cascade on delete; nullable for `backlog_full` notifications |
-| `type` | string | `assigned_announcement`, `completed`, `failed_review`, `progress_milestone`, `backlog_full` |
+| `type` | string | `assigned_announcement`, `completed`, `failed_review`, `progress_milestone`, `backlog_full`, `recap` |
 | `scheduled_at` | timestamp (nullable) | When notification should be sent (for deferred reviews) |
 | `sent_at` | timestamp (nullable) | When actually delivered |
 | `status` | string | `pending`, `sent`, `cancelled` (default `pending`) |
@@ -551,12 +551,82 @@ Failed: 0
 - Command processes pending and outputs summary
 - Empty queue handled gracefully
 
-### **5.9 Out of Scope (Future Steps)**
+### **5.9 End-of-Day Review & Recap Notifications** ✅ Implemented
 
-- `failed_review` notifications and 23:00 review logic
-- Recap / sarcastic notifications
-- `increment_value` / `failed_days` handling
-- OpenDota delay handling
+**Files created:**
+- `app/Services/DailyChallenge/ChallengeReviewService.php` — Core review logic
+- `app/Console/Commands/ReviewDailyChallenges.php` — `challenges:review-daily` Artisan command
+
+**Files modified:**
+- `app/Services/DailyChallenge/ChallengeMessageRenderer.php` — Added `recap` notification type
+- `app/Services/DailyChallenge/ChallengeNotificationDispatcher.php` — Renamed `$backlogNotifications` → `$nullDcNotifications` to handle both `backlog_full` and `recap` (both have null `destination_challenge_id`)
+- `routes/console.php` — Added scheduler entry at 23:00 Asia/Jakarta
+
+**Scheduler** (in `routes/console.php`):
+```php
+Schedule::command('challenges:review-daily')
+    ->dailyAt(config('dota.daily_challenge.review_time', '23:00'))
+    ->timezone(config('dota.daily_challenge.timezone', 'Asia/Jakarta'))
+    ->withoutOverlapping()
+    ->runInBackground();
+```
+
+**Business rules implemented:**
+- **23:00 review**: Processes all active challenges assigned today
+- **Increment logic**: For incomplete accumulative challenges, bumps `current_requirement` by `increment_value`, capped at `max_requirement`. Snapshot challenges (`increment_value=0`) keep same requirement.
+- **failed_days tracking**: Increments `failed_days` for ALL incomplete challenges (both accumulative and snapshot)
+- **Audit events**: Creates `ChallengeEvent(type='incremented')` and `ChallengeEvent(type='failed_review')` for audit trail
+- **Recap notification**: Creates one `ChallengeNotification(type='recap', destination_challenge_id=null)` per destination that has failures. Skips recap entirely if all challenges completed.
+- **DB transactions**: Each challenge's updates are wrapped in `DB::transaction()` for atomicity
+- **Idempotency**: Uses `whereDoesntHave('events', ...)` filter — second run on same day is a true no-op
+- **Chunked iteration**: Processes challenges in chunks of 100 via `chunkById()`
+
+**Recap message format (Bahasa Indonesia):**
+```
+🪦 {failed_count} tantangan gak selesai
+
+{encouragement}
+
+Sebagai hukuman, tantangan kalian ditambah 👺:
+- {description_1} ({progress_1}/{req_1} selesai)
+- {description_2} ({progress_2}/{req_2} selesai)
+```
+
+Encouragement varies by failed count: 1 → `Masih bisa dikejar besok.`, 2-3 → `Yuk lebih fokus besok.`, 4+ → `Evaluasi strategi kalian.`
+
+**Command output:**
+```
+Reviewed: 12
+Incremented: 8
+Failed: 4
+Recap destinations: 3
+```
+
+**Tests:**
+
+`tests/Feature/ChallengeReviewServiceTest.php` — 11 tests, 52 assertions:
+- Accumulative challenge increment (with cap at `max_requirement`)
+- Snapshot challenge requirement unchanged
+- Completed challenge skipped entirely
+- `failed_days` incremented on each review
+- `incremented` and `failed_review` events created with correct before/after values
+- Recap notification created with payload structure (`destination_id`, `failed_count`, `failed_challenges`)
+- No recap when all challenges completed
+- Multiple destinations → separate recaps only if failures exist
+- Review idempotent (second run on same day is a no-op)
+
+`tests/Feature/ChallengeMessageRendererTest.php` — 3 new recap tests:
+- Punishment format (🪦, `gak selesai`, `Sebagai hukuman`, `ditambah 👺`, `(x/y selesai)`)
+- Encouragement varies by failed count (1 → `Masih bisa dikejar besok.`, 4+ → `Evaluasi strategi kalian.`)
+
+`tests/Feature/ReviewDailyChallengesCommandTest.php` — 3 tests:
+- Command runs and outputs summary with all four keys
+- Empty queue handled gracefully (all zeros)
+- No recap notification generated when all challenges completed
+
+### **5.10 Out of Scope (Future Steps)**
+
+- OpenDota delay handling (Step 6)
 
 ---
 

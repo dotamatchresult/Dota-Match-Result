@@ -36,8 +36,8 @@ class ChallengeNotificationDispatcher
             return ['processed' => 0, 'sent' => 0, 'batched' => 0, 'failed' => 0];
         }
 
-        // Split: backlog_full (NULL destination_challenge_id) vs others
-        [$backlogNotifications, $challengeNotifications] = $allPending->partition(
+        // Split: null destination_challenge_id (backlog_full, recap) vs others
+        [$nullDcNotifications, $challengeNotifications] = $allPending->partition(
             fn (ChallengeNotification $n) => $n->destination_challenge_id === null
         );
 
@@ -66,15 +66,16 @@ class ChallengeNotificationDispatcher
             }
         }
 
-        // Process backlog_full notifications (destination from payload)
-        foreach ($backlogNotifications as $notification) {
+        // Process null-DC notifications: backlog_full, recap (destination from payload)
+        foreach ($nullDcNotifications as $notification) {
             $processed++;
 
             $destinationId = $notification->payload['destination_id'] ?? null;
 
             if (! $destinationId) {
-                Log::warning('ChallengeNotificationDispatcher: backlog_full notification missing destination_id in payload', [
+                Log::warning('ChallengeNotificationDispatcher: null-DC notification missing destination_id in payload', [
                     'notification_id' => $notification->id,
+                    'type' => $notification->type,
                 ]);
                 $failed++;
 
@@ -84,8 +85,9 @@ class ChallengeNotificationDispatcher
             $destination = Destination::find($destinationId);
 
             if (! $destination) {
-                Log::warning('ChallengeNotificationDispatcher: backlog_full notification references non-existent destination', [
+                Log::warning('ChallengeNotificationDispatcher: null-DC notification references non-existent destination', [
                     'notification_id' => $notification->id,
+                    'type' => $notification->type,
                     'destination_id' => $destinationId,
                 ]);
                 $failed++;

@@ -180,3 +180,93 @@ test('renderBatch with one item uses single completion format', function () {
     expect($message)->toContain('Kerja bagus');
     expect($message)->not->toContain('Tim kamu menyelesaikan');
 });
+
+// --- recap ---
+
+test('recap renders correct punishment format', function () {
+    $notification = ChallengeNotification::factory()->create([
+        'destination_challenge_id' => null,
+        'type' => 'recap',
+        'status' => 'pending',
+        'payload' => [
+            'destination_id' => 1,
+            'failed_count' => 2,
+            'failed_challenges' => [
+                [
+                    'description' => 'Menangkan 3 pertandingan menggunakan Pudge',
+                    'progress' => 1,
+                    'requirement' => 3,
+                ],
+                [
+                    'description' => 'Pulihkan 32.000 HP',
+                    'progress' => 24000,
+                    'requirement' => 32000,
+                ],
+            ],
+        ],
+    ]);
+
+    $renderer = app(ChallengeMessageRenderer::class);
+    $message = $renderer->render($notification);
+
+    expect($message)->toContain('🪦 2 tantangan gak selesai');
+    expect($message)->toContain('Sebagai hukuman, tantangan kalian ditambah 👺:');
+    expect($message)->toContain('- Menangkan 3 pertandingan menggunakan Pudge (1/3 selesai)');
+    expect($message)->toContain('- Pulihkan 32.000 HP (24000/32000 selesai)');
+});
+
+test('recap encouragement varies by failed count - 1 failed', function () {
+    $notification = ChallengeNotification::factory()->create([
+        'destination_challenge_id' => null,
+        'type' => 'recap',
+        'status' => 'pending',
+        'payload' => [
+            'destination_id' => 1,
+            'failed_count' => 1,
+            'failed_challenges' => [
+                [
+                    'description' => 'Dapatkan 30 total kill',
+                    'progress' => 10,
+                    'requirement' => 30,
+                ],
+            ],
+        ],
+    ]);
+
+    $renderer = app(ChallengeMessageRenderer::class);
+    $message = $renderer->render($notification);
+
+    expect($message)->toContain('Masih bisa dikejar besok.');
+    expect($message)->not->toContain('Yuk lebih fokus besok.');
+    expect($message)->not->toContain('Evaluasi strategi kalian.');
+});
+
+test('recap encouragement varies by failed count - 4 or more failed', function () {
+    $failedChallenges = [];
+
+    for ($i = 1; $i <= 4; $i++) {
+        $failedChallenges[] = [
+            'description' => "Tantangan {$i}",
+            'progress' => 0,
+            'requirement' => 10,
+        ];
+    }
+
+    $notification = ChallengeNotification::factory()->create([
+        'destination_challenge_id' => null,
+        'type' => 'recap',
+        'status' => 'pending',
+        'payload' => [
+            'destination_id' => 1,
+            'failed_count' => 4,
+            'failed_challenges' => $failedChallenges,
+        ],
+    ]);
+
+    $renderer = app(ChallengeMessageRenderer::class);
+    $message = $renderer->render($notification);
+
+    expect($message)->toContain('Evaluasi strategi kalian.');
+    expect($message)->not->toContain('Masih bisa dikejar besok.');
+    expect($message)->not->toContain('Yuk lebih fokus besok.');
+});
