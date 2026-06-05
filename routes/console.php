@@ -172,3 +172,8 @@ Schedule::command('challenges:assign-daily')
     ->timezone(config('dota.daily_challenge.timezone', 'Asia/Jakarta'))
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('challenges:send-notifications')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();

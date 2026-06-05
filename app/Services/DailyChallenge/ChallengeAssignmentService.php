@@ -7,6 +7,7 @@ use App\Models\ChallengeEvent;
 use App\Models\ChallengeNotification;
 use App\Models\Destination;
 use App\Models\DestinationChallenge;
+use App\Models\Hero;
 use App\Models\Item;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -169,6 +170,26 @@ class ChallengeAssignmentService
                 ]);
             } else {
                 Log::warning('Daily challenge: no items with cost >= 4000 found for item_win', [
+                    'challenge_code' => $challenge->code,
+                ]);
+            }
+        }
+
+        if ($challenge->code === 'hero_win') {
+            $hero = Hero::query()->inRandomOrder()->first();
+
+            if ($hero) {
+                $progressData = ['metadata' => ['hero_id' => $hero->hero_id]];
+                $eventMeta = ['hero_id' => $hero->hero_id, 'hero_name' => $hero->localized_name ?? $hero->name];
+                $notificationMeta = ['hero_id' => $hero->hero_id, 'hero_name' => $hero->localized_name ?? $hero->name];
+
+                Log::info('Daily challenge: randomized hero for hero_win', [
+                    'challenge_code' => $challenge->code,
+                    'hero_id' => $hero->hero_id,
+                    'hero_name' => $hero->localized_name ?? $hero->name,
+                ]);
+            } else {
+                Log::warning('Daily challenge: no heroes found for hero_win', [
                     'challenge_code' => $challenge->code,
                 ]);
             }

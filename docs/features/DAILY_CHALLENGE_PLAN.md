@@ -329,6 +329,7 @@ Schedule::command('challenges:assign-daily')
 - **Pool exhaustion fallback**: If all active challenges are within cooldown, falls back to any active challenge
 - **Random selection**: Uses `inRandomOrder()` among eligible candidates
 - **Item win randomization**: For `item_win` challenges, picks a random item with cost ≥ 4000 from the `items` table at assignment time and stores `item_id` in `DestinationChallenge.progress_data.metadata`
+- **Hero win randomization**: For `hero_win` challenges, picks a random hero from the `heroes` table at assignment time and stores `hero_id` in `DestinationChallenge.progress_data.metadata` (added during Step 5 — needed for description rendering)
 - **DB transaction**: Creates `DestinationChallenge` + `ChallengeEvent` (type: `assigned`) + `ChallengeNotification` (type: `assigned_announcement`) atomically
 - **Chunked iteration**: Processes destinations in chunks of 100 via `chunkById()`
 - **Structured logging**: Logs all outcomes (assigned, skipped-idempotency, skipped-limit, skipped-no-challenge, errors)
@@ -388,14 +389,174 @@ Not yet implemented. Review/increment logic deferred to Step 4.
 
 ---
 
-# **Step 5: Messaging Service Integration**
+# **Step 5: Notification Delivery System** ✅ Implemented
 
-* Use your existing Fonnte Service
-* Examples:
+### **5.1 Architecture**
 
-  * **08:00:** "Today's challenge: Get 20 kills in turbo mode!"
-  * **On completion:** "🎉 Challenge completed by your team!"
-  * **23:00 unfinished:** "😏 Challenge not completed today… better luck tomorrow!"
+Transport-agnostic notification delivery pipeline that reads pending `ChallengeNotification` records, batches completions by destination, renders formatted messages in **Bahasa Indonesia**, and routes through existing `TelegramService`/`FonnteService`.
+
+**Pipeline flow:**
+
+```
+ChallengeNotification (status=pending)
+    ↓
+ChallengeNotificationDispatcher (group, batch, orchestrate)
+    ↓
+ChallengeMessageRenderer (format message)
+    ↓
+DestinationMessageService (route by transport)
+    ↓
+TelegramService / FonnteService
+    ↓
+status=sent, sent_at=now()
+```
+
+**Files created:**
+- `app/Services/Messaging/DestinationMessageService.php` — Thin transport router (whatsapp → Fonnte, telegram → Telegram)
+- `app/Services/DailyChallenge/ChallengeDescriptionService.php` — Human-readable challenge descriptions in Bahasa Indonesia
+- `app/Services/DailyChallenge/ChallengeMessageRenderer.php` — Formatted message rendering for each notification type
+- `app/Services/DailyChallenge/ChallengeNotificationDispatcher.php` — Orchestrator: groups, batches, renders, sends, marks sent
+- `app/Console/Commands/SendChallengeNotifications.php` — `challenges:send-notifications` artisan command
+
+**Scheduler** (in `routes/console.php`):
+```php
+Schedule::command('challenges:send-notifications')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();
+```
+
+### **5.2 ChallengeDescriptionService**
+
+Generates human-readable challenge descriptions from `DestinationChallenge` data. Uses `progress_data['metadata']` (set by evaluator) as primary source, falling back to `challenge.configuration`.
+
+**Templates (Bahasa Indonesia):**
+
+| Code | Template |
+|---|---|
+| `hero_win` | `Menangkan {n} pertandingan menggunakan {hero_name}` |
+| `item_win` | `Menangkan {n} pertandingan dengan membawa {item_name}` |
+| `total_kills` | `Dapatkan {n} total kill` |
+| `total_denies` | `Dapatkan {n} total deny` |
+| `total_heal` | `Pulihkan {n} HP` (with `number_format`) |
+| `last_hits` | `Dapatkan {n} last hit dalam satu pertandingan` |
+| `zero_death_win` | `Menangkan pertandingan tanpa mati` |
+| `fast_win` | `Menangkan pertandingan dalam waktu kurang dari {n} menit` |
+| default | `$challenge->description` with `{requirement}` replaced |
+
+**Dynamic value resolution:**
+- `hero_name`: Looks up `Hero` by `hero_id`, prefers `localized_name`, falls back to `name`, then `"Hero yang ditentukan"`
+- `item_name`: Looks up `Item` by `item_id`, prefers `dname`, falls back to `name`, then `"Item yang ditentukan"`
+- Indonesian has no plural noun forms, so `"1 pertandingan"` and `"2 pertandingan"` are both naturally correct
+
+### **5.3 ChallengeMessageRenderer**
+
+Formats notification messages. Supports single notifications via `render()` and batched completions via `renderBatch()`.
+
+**`assigned_announcement`:**
+```
+🎯 TANTANGAN HARIAN
+
+{description}
+
+Progress:
+{current_progress} / {current_requirement}
+
+Semoga beruntung.
+```
+
+**`completed` (single):**
+```
+🎉 TANTANGAN SELESAI
+
+✅ {description}
+
+Kerja bagus.
+```
+
+**`completed` (multi — 2+ notifications):**
+```
+🎉 TANTANGAN SELESAI
+
+Tim kamu menyelesaikan {count} tantangan:
+
+✅ {description_1}
+✅ {description_2}
+✅ {description_3}
+
+Teruskan.
+```
+
+**`backlog_full`:**
+```
+📚 TANTANGAN MENUMPUK
+
+Kamu sudah punya {max} tantangan aktif.
+
+Selesaikan dulu yang ada.
+```
+
+### **5.4 ChallengeNotificationDispatcher**
+
+Orchestrator: queries pending notifications, groups `completed` by destination, respects `scheduled_at` for `assigned_announcement`, handles `backlog_full` (loads destination from payload's `destination_id` since `destination_challenge_id` is null).
+
+**Batching rules:**
+- All `completed` notifications for the same destination are batched into a single message
+- If only 1 completed notification exists, still uses single-completion format (not multi)
+- Other notification types (`assigned_announcement`, `backlog_full`) are always sent individually
+- On success: marks all affected notifications `status=sent, sent_at=now()`
+- On failure: leaves all as `status=pending`
+
+### **5.5 DestinationMessageService**
+
+Thin routing layer. Resolves transport from `$destination->code`:
+- `whatsapp` → `FonnteService::sendMessage($destination->target, $message)`
+- `telegram` → `TelegramService::sendMessage($message, 'default', $destination->target)`
+- Other → throws `InvalidArgumentException`
+
+No new transport abstractions — existing services already handle format conversion, token resolution, and `message_enabled` toggle.
+
+### **5.6 Command Output**
+
+```
+Processed: 14
+Sent: 12
+Batched: 3 groups
+Failed: 0
+```
+
+### **5.7 Cross-Step Changes**
+
+- **Step 3 (`ChallengeAssignmentService`)**: Added `hero_win` randomization in `resolveRuntimeConfig()` — picks a random hero from the `heroes` table at assignment time, mirroring the existing `item_win` pattern. Required for description rendering to name the specific hero in the 08:00 announcement.
+
+### **5.8 Tests**
+
+`tests/Feature/ChallengeDescriptionServiceTest.php` — 13 tests:
+- All 8 challenge code templates
+- Metadata priority over configuration
+- Fallback when hero/item not found
+- Number formatting for `total_heal`
+
+`tests/Feature/ChallengeMessageRendererTest.php` — 5 tests:
+- `assigned_announcement`, `backlog_full`, single `completed`, multi `completed` (3 items), single item via `renderBatch`
+
+`tests/Feature/ChallengeNotificationDispatcherTest.php` — 8 tests:
+- Successful send marks sent, failed send remains pending
+- Completed batching (same destination → one message, different destinations → separate)
+- `scheduled_at` respected (future → skipped, past → sent)
+- `backlog_full` via destination from payload
+- Summary counts
+
+`tests/Feature/SendChallengeNotificationsCommandTest.php` — 2 tests:
+- Command processes pending and outputs summary
+- Empty queue handled gracefully
+
+### **5.9 Out of Scope (Future Steps)**
+
+- `failed_review` notifications and 23:00 review logic
+- Recap / sarcastic notifications
+- `increment_value` / `failed_days` handling
+- OpenDota delay handling
 
 ---
 
