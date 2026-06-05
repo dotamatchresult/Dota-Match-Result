@@ -7,6 +7,7 @@ use App\Models\ChallengeEvent;
 use App\Models\ChallengeNotification;
 use App\Models\Destination;
 use App\Models\DestinationChallenge;
+use App\Models\Item;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -72,17 +73,25 @@ class ChallengeAssignmentService
             return null;
         }
 
+        // --- Rule 6: Resolve runtime configuration (e.g. random item for item_win) ---
+        $runtimeConfig = $this->resolveRuntimeConfig($challenge);
+
         // --- Create assignment, event, and notification in a transaction ---
-        return DB::transaction(function () use ($destination, $challenge, $timezone, $today) {
+        return DB::transaction(function () use ($destination, $challenge, $timezone, $today, $runtimeConfig) {
             $destinationChallenge = DestinationChallenge::create([
                 'destination_id' => $destination->id,
                 'challenge_id' => $challenge->id,
                 'assigned_date' => $today,
                 'status' => 'active',
                 'current_requirement' => $challenge->base_requirement,
-                'progress_data' => [],
+                'progress_data' => $runtimeConfig['progress_data'],
                 'failed_days' => 0,
             ]);
+
+            $eventPayload = array_merge([
+                'challenge_code' => $challenge->code,
+                'challenge_name' => $challenge->name,
+            ], $runtimeConfig['event_meta']);
 
             ChallengeEvent::create([
                 'destination_challenge_id' => $destinationChallenge->id,
@@ -90,26 +99,25 @@ class ChallengeAssignmentService
                 'type' => 'assigned',
                 'value_before' => 0,
                 'value_after' => $challenge->base_requirement,
-                'payload' => [
-                    'challenge_code' => $challenge->code,
-                    'challenge_name' => $challenge->name,
-                ],
+                'payload' => $eventPayload,
             ]);
 
             $scheduledAt = Carbon::now($timezone)
                 ->setTimeFromTimeString(config('dota.daily_challenge.announcement_time', '08:00'));
+
+            $notificationPayload = array_merge([
+                'challenge_code' => $challenge->code,
+                'challenge_name' => $challenge->name,
+                'requirement' => $challenge->base_requirement,
+                'category' => $challenge->category,
+            ], $runtimeConfig['notification_meta']);
 
             ChallengeNotification::create([
                 'destination_challenge_id' => $destinationChallenge->id,
                 'type' => 'assigned_announcement',
                 'scheduled_at' => $scheduledAt->setTimezone('UTC'),
                 'status' => 'pending',
-                'payload' => [
-                    'challenge_code' => $challenge->code,
-                    'challenge_name' => $challenge->name,
-                    'requirement' => $challenge->base_requirement,
-                    'category' => $challenge->category,
-                ],
+                'payload' => $notificationPayload,
             ]);
 
             Log::info('Daily challenge assigned', [
@@ -127,6 +135,50 @@ class ChallengeAssignmentService
 
             return $destinationChallenge;
         });
+    }
+
+    /**
+     * Resolve runtime configuration for a challenge before assignment.
+     *
+     * For item_win challenges, picks a random item with cost >= 4000
+     * and stores the item_id in progress_data and event/notification payloads.
+     *
+     * @return array{progress_data: array, event_meta: array, notification_meta: array}
+     */
+    private function resolveRuntimeConfig(Challenge $challenge): array
+    {
+        $progressData = [];
+        $eventMeta = [];
+        $notificationMeta = [];
+
+        if ($challenge->code === 'item_win') {
+            $item = Item::query()
+                ->where('cost', '>=', 4000)
+                ->inRandomOrder()
+                ->first();
+
+            if ($item) {
+                $progressData = ['metadata' => ['item_id' => $item->item_id]];
+                $eventMeta = ['item_id' => $item->item_id, 'item_name' => $item->dname ?? $item->name];
+                $notificationMeta = ['item_id' => $item->item_id, 'item_name' => $item->dname ?? $item->name];
+
+                Log::info('Daily challenge: randomized item for item_win', [
+                    'challenge_code' => $challenge->code,
+                    'item_id' => $item->item_id,
+                    'item_name' => $item->dname ?? $item->name,
+                ]);
+            } else {
+                Log::warning('Daily challenge: no items with cost >= 4000 found for item_win', [
+                    'challenge_code' => $challenge->code,
+                ]);
+            }
+        }
+
+        return [
+            'progress_data' => $progressData,
+            'event_meta' => $eventMeta,
+            'notification_meta' => $notificationMeta,
+        ];
     }
 
     /**

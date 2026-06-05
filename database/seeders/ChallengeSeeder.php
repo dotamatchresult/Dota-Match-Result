@@ -58,14 +58,14 @@ class ChallengeSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'code' => 'bkb_win',
-                'name' => 'BKB Win',
-                'description' => 'Win {requirement} game(s) where someone buys Black King Bar',
+                'code' => 'item_win',
+                'name' => 'Item Win',
+                'description' => 'Win {requirement} game(s) where someone buys {item_name}',
                 'category' => 'accumulative',
                 'base_requirement' => 1,
                 'increment_value' => 1,
                 'max_requirement' => 3,
-                'configuration' => ['item_id' => 116],
+                'configuration' => null,
                 'is_active' => true,
             ],
             [

@@ -16,14 +16,14 @@ class ChallengeFactory extends Factory
      */
     public function definition(): array
     {
-        $codes = ['total_kills', 'total_denies', 'total_heal', 'hero_win', 'bkb_win', 'last_hits', 'zero_death_win', 'fast_win'];
+        $codes = ['total_kills', 'total_denies', 'total_heal', 'hero_win', 'item_win', 'last_hits', 'zero_death_win', 'fast_win'];
 
         $categories = [
             'total_kills' => 'accumulative',
             'total_denies' => 'accumulative',
             'total_heal' => 'accumulative',
             'hero_win' => 'accumulative',
-            'bkb_win' => 'accumulative',
+            'item_win' => 'accumulative',
             'last_hits' => 'snapshot',
             'zero_death_win' => 'snapshot',
             'fast_win' => 'snapshot',

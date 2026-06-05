@@ -13,7 +13,7 @@ Table: `challenges`
 | `base_requirement` | unsigned integer | Starting threshold |
 | `increment_value` | unsigned integer | Growth on failure (default 0; always 0 for snapshots) |
 | `max_requirement` | unsigned integer | Cap to prevent runaway targets |
-| `configuration` | json (nullable) | Type-specific config (e.g. `{"item_id": 116}` for bkb_win) |
+| `configuration` | json (nullable) | Type-specific config (e.g. `{"item_id": 116}` for item_win) |
 | `is_active` | boolean | Soft-disable from pool (default true) |
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
@@ -90,7 +90,7 @@ Indexes: composite(`destination_challenge_id`, `type`, `status`), composite(`sta
         'total_denies' => 'total_denies',
         'total_heal' => 'total_heal',
         'hero_win' => 'hero_win',
-        'bkb_win' => 'bkb_win',
+        'item_win' => \App\Services\ChallengeEvaluators\ItemWinEvaluator::class,
         'last_hits' => 'last_hits',
         'zero_death_win' => 'zero_death_win',
         'fast_win' => 'fast_win',
@@ -296,7 +296,7 @@ public function destinationChallenges(): HasMany
 ### **2.3 Additional Deliverables**
 
 - **`ChallengeSeeder`** (`database/seeders/ChallengeSeeder.php`): Seeds 8 initial challenge templates:
-  - 5 accumulative: `total_kills` (30→60), `total_denies` (20→40), `total_heal` (10k→20k), `hero_win` (1→3), `bkb_win` (1→3)
+  - 5 accumulative: `total_kills` (30→60), `total_denies` (20→40), `total_heal` (10k→20k), `hero_win` (1→3), `item_win` (1→3)
   - 3 snapshot: `last_hits` (60), `zero_death_win` (1), `fast_win` (25 min)
   - Registered in `DatabaseSeeder`
 - **4 Factories**: `ChallengeFactory`, `DestinationChallengeFactory` (states: `completed()`, `withProgress()`), `ChallengeEventFactory` (states: `forMatch()`, `ofType()`), `ChallengeNotificationFactory` (states: `scheduled()`, `sent()`, `cancelled()`)
@@ -328,6 +328,7 @@ Schedule::command('challenges:assign-daily')
 - **14-day cooldown**: Prefers challenges not assigned to the destination in the last `assignment_history_days` days
 - **Pool exhaustion fallback**: If all active challenges are within cooldown, falls back to any active challenge
 - **Random selection**: Uses `inRandomOrder()` among eligible candidates
+- **Item win randomization**: For `item_win` challenges, picks a random item with cost ≥ 4000 from the `items` table at assignment time and stores `item_id` in `DestinationChallenge.progress_data.metadata`
 - **DB transaction**: Creates `DestinationChallenge` + `ChallengeEvent` (type: `assigned`) + `ChallengeNotification` (type: `assigned_announcement`) atomically
 - **Chunked iteration**: Processes destinations in chunks of 100 via `chunkById()`
 - **Structured logging**: Logs all outcomes (assigned, skipped-idempotency, skipped-limit, skipped-no-challenge, errors)

@@ -117,6 +117,16 @@ If today's assignment already exists:
 
 Return without creating anything.
 
+### Rule 6 - Item Win Randomization (Post-Implementation Addition)
+
+For `item_win` challenges, a random item with `cost >= 4000` is selected from the `items` table at assignment time. The `item_id` and `item_name` are stored in:
+
+- `DestinationChallenge.progress_data.metadata.item_id` — read by the evaluator
+- `ChallengeEvent.payload.item_id` / `item_name` — for audit
+- `ChallengeNotification.payload.item_id` / `item_name` — for notification rendering
+
+If no items with cost >= 4000 exist, the assignment still proceeds but the evaluator will return no-match until items are available.
+
 ---
 
 ## Required Deliverables

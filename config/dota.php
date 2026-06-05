@@ -31,7 +31,7 @@ return [
             'total_denies' => 'total_denies',
             'total_heal' => 'total_heal',
             'hero_win' => \App\Services\ChallengeEvaluators\HeroWinEvaluator::class,
-            'bkb_win' => 'bkb_win',
+            'item_win' => \App\Services\ChallengeEvaluators\ItemWinEvaluator::class,
             'last_hits' => 'last_hits',
             'zero_death_win' => 'zero_death_win',
             'fast_win' => 'fast_win',

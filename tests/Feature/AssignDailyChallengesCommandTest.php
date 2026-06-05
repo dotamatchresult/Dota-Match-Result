@@ -5,6 +5,7 @@ use App\Models\ChallengeEvent;
 use App\Models\ChallengeNotification;
 use App\Models\Destination;
 use App\Models\DestinationChallenge;
+use App\Models\Item;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\artisan;
@@ -246,4 +247,54 @@ test('command assigns challenges to multiple destinations', function () {
 
     expect($count1)->toBe(1);
     expect($count2)->toBe(1);
+});
+
+// --- Item Win Randomization ---
+
+test('item_win challenge randomizes an item with cost >= 4000 at assignment', function () {
+    // Seed an expensive item
+    $item = Item::create([
+        'item_id' => 208,
+        'name' => 'refresher',
+        'dname' => 'Refresher Orb',
+        'cost' => 5000,
+    ]);
+
+    // Also seed a cheap item that should NOT be picked
+    Item::create([
+        'item_id' => 48,
+        'name' => 'power_treads',
+        'dname' => 'Power Treads',
+        'cost' => 1400,
+    ]);
+
+    // Deactivate all challenges except item_win
+    Challenge::query()->update(['is_active' => false]);
+    Challenge::query()->where('code', 'item_win')->update(['is_active' => true]);
+
+    $destination = Destination::factory()->create();
+
+    artisan('challenges:assign-daily')->assertSuccessful();
+
+    $dc = DestinationChallenge::query()
+        ->where('destination_id', $destination->id)
+        ->where('status', 'active')
+        ->first();
+
+    expect($dc)->not->toBeNull();
+
+    // progress_data should contain the item_id
+    expect($dc->progress_data)->toBeArray()
+        ->metadata->toBeArray()
+        ->metadata->item_id->toBe($item->item_id);
+
+    // Event payload should include item_id
+    $event = ChallengeEvent::query()
+        ->where('destination_challenge_id', $dc->id)
+        ->where('type', 'assigned')
+        ->first();
+
+    expect($event)->not->toBeNull()
+        ->payload->item_id->toBe($item->item_id)
+        ->payload->item_name->toBe('Refresher Orb');
 });
