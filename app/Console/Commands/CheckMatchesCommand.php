@@ -143,6 +143,7 @@ class CheckMatchesCommand extends Command
             $dotaMatch = DotaMatch::create([
                 'match_id' => $matchId,
                 'match_timestamp' => isset($matchDetails['start_time']) ? now()->setTimestamp($matchDetails['start_time']) : null,
+                'finished_at' => $this->calculateFinishedAt($matchDetails),
                 'match_data' => $relevantData,
                 'members' => $matchMemberIds,
                 'parse_status' => $outcome !== 'Lost' ? null : 'pending',
@@ -220,6 +221,7 @@ class CheckMatchesCommand extends Command
         $dotaMatch = DotaMatch::create([
             'match_id' => $matchId,
             'match_timestamp' => isset($matchDetails['start_time']) ? now()->setTimestamp($matchDetails['start_time']) : null,
+            'finished_at' => $this->calculateFinishedAt($matchDetails),
             'match_data' => $relevantData,
             'members' => $matchMemberIds,
             'parse_status' => $outcome !== 'Lost' ? null : 'pending',
@@ -291,6 +293,20 @@ class CheckMatchesCommand extends Command
         ];
 
         return [$relevantData, $matchMembers];
+    }
+
+    /**
+     * Calculate the finished_at timestamp from match start_time and duration.
+     *
+     * @param  array  $matchDetails  Raw match details from Steam API
+     */
+    protected function calculateFinishedAt(array $matchDetails): ?\Illuminate\Support\Carbon
+    {
+        if (! isset($matchDetails['start_time'], $matchDetails['duration'])) {
+            return null;
+        }
+
+        return now()->setTimestamp($matchDetails['start_time'] + $matchDetails['duration']);
     }
 
     protected function writeLog(): void

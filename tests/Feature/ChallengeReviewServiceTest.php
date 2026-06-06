@@ -5,6 +5,8 @@ use App\Models\ChallengeEvent;
 use App\Models\ChallengeNotification;
 use App\Models\Destination;
 use App\Models\DestinationChallenge;
+use App\Models\DotaMatch;
+use App\Models\Member;
 use App\Services\DailyChallenge\ChallengeReviewService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -420,4 +422,210 @@ test('review is idempotent on same day', function () {
 
     expect($incrementedCountAfter)->toBe(1);
     expect($failedReviewCountAfter)->toBe(1);
+});
+
+// --- Guard Integration: Blocked Review ---
+
+/**
+ * Helper to create a destination with a valid DestinationType enum code
+ * and a challenge assigned to it. Returns [destination, destinationChallenge].
+ */
+function createBlockableSetup(): array
+{
+    // Use the pre-seeded 'whatsapp' destination from the migration
+    $dest = Destination::where('code', \App\Enums\DestinationType::WhatsApp->value)->firstOrFail();
+
+    $challenge = Challenge::factory()->create([
+        'code' => 'total_kills',
+        'increment_value' => 10,
+        'base_requirement' => 30,
+        'max_requirement' => 60,
+    ]);
+
+    $dc = DestinationChallenge::factory()->create([
+        'destination_id' => $dest->id,
+        'challenge_id' => $challenge->id,
+        'status' => 'active',
+        'assigned_date' => now()->toDateString(),
+        'current_requirement' => 30,
+        'current_progress' => 10,
+        'failed_days' => 0,
+    ]);
+
+    $member = Member::factory()->create([
+        'destination' => $dest->code,
+    ]);
+
+    return [$dest, $dc, $member];
+}
+
+test('review creates review_delayed notification when blocked by pending match', function () {
+    [$dest, $dc, $member] = createBlockableSetup();
+
+    // Create a blocking match for this destination's member
+    DotaMatch::create([
+        'match_id' => (string) fake()->unique()->randomNumber(9, true),
+        'match_timestamp' => now()->subHours(3),
+        'finished_at' => now()->subHours(2),
+        'match_data' => ['duration' => 3600],
+        'members' => [$member->id],
+        'parse_status' => 'pending',
+    ]);
+
+    $service = app(ChallengeReviewService::class);
+    $result = $service->review();
+
+    expect($result['deferred'])->toBe(1);
+    expect($result['incremented'])->toBe(0);
+    expect($result['failed'])->toBe(0);
+
+    $notification = ChallengeNotification::query()
+        ->where('type', 'review_delayed')
+        ->where('status', 'pending')
+        ->first();
+
+    expect($notification)->not->toBeNull();
+    expect($notification->payload['destination_id'])->toBe($dest->id);
+    expect($notification->payload['blocking_match_ids'])->toBeArray();
+});
+
+test('review skips increment and failed_days when blocked', function () {
+    [$dest, $dc, $member] = createBlockableSetup();
+
+    DotaMatch::create([
+        'match_id' => (string) fake()->unique()->randomNumber(9, true),
+        'match_timestamp' => now()->subHours(3),
+        'finished_at' => now()->subHours(2),
+        'match_data' => ['duration' => 3600],
+        'members' => [$member->id],
+        'parse_status' => 'pending',
+    ]);
+
+    $service = app(ChallengeReviewService::class);
+    $service->review();
+
+    $dc->refresh();
+
+    // Should NOT have been incremented
+    expect($dc->current_requirement)->toBe(30);
+    expect($dc->failed_days)->toBe(0);
+
+    // No recap notification should have been created for this destination
+    $recapNotification = ChallengeNotification::query()
+        ->where('type', 'recap')
+        ->whereJsonContains('payload->destination_id', $dest->id)
+        ->first();
+
+    expect($recapNotification)->toBeNull();
+});
+
+// --- Guard Integration: Force Review ---
+
+test('review creates review_forced events and proceeds when forceReview', function () {
+    [$dest, $dc, $member] = createBlockableSetup();
+
+    DotaMatch::create([
+        'match_id' => (string) fake()->unique()->randomNumber(9, true),
+        'match_timestamp' => now()->subHours(3),
+        'finished_at' => now()->subHours(2),
+        'match_data' => ['duration' => 3600],
+        'members' => [$member->id],
+        'parse_status' => 'pending',
+    ]);
+
+    $notification = ChallengeNotification::create([
+        'destination_challenge_id' => null,
+        'type' => 'review_delayed',
+        'status' => 'pending',
+        'payload' => [
+            'destination_id' => $dest->id,
+            'blocking_match_ids' => [],
+        ],
+    ]);
+    $notification->created_at = now()->subHours(13);
+    $notification->save();
+
+    $service = app(ChallengeReviewService::class);
+    $result = $service->review();
+
+    expect($result['forced'])->toBe(1);
+    expect($result['incremented'])->toBe(1);
+    expect($result['failed'])->toBe(1);
+
+    // review_forced event should have been created
+    $forcedEvent = ChallengeEvent::query()
+        ->where('destination_challenge_id', $dc->id)
+        ->where('type', 'review_forced')
+        ->first();
+
+    expect($forcedEvent)->not->toBeNull();
+
+    // Normal review should still have run
+    $dc->refresh();
+    expect($dc->current_requirement)->toBe(40);
+    expect($dc->failed_days)->toBe(1);
+});
+
+// --- Guard Integration: Deduplication ---
+
+test('duplicate review_delayed notifications are not created', function () {
+    [$dest, $dc, $member] = createBlockableSetup();
+
+    DotaMatch::create([
+        'match_id' => (string) fake()->unique()->randomNumber(9, true),
+        'match_timestamp' => now()->subHours(3),
+        'finished_at' => now()->subHours(2),
+        'match_data' => ['duration' => 3600],
+        'members' => [$member->id],
+        'parse_status' => 'pending',
+    ]);
+
+    $service = app(ChallengeReviewService::class);
+
+    // Run review twice (same day)
+    $service->review();
+    $service->review();
+
+    $notifications = ChallengeNotification::query()
+        ->where('type', 'review_delayed')
+        ->whereDate('created_at', now()->toDateString())
+        ->get();
+
+    expect($notifications)->toHaveCount(1);
+});
+
+// --- Guard Integration: Recap still works ---
+
+test('recap notification still created for non-blocked destinations', function () {
+    $dest = Destination::where('code', \App\Enums\DestinationType::WhatsApp->value)->firstOrFail();
+
+    $challenge = Challenge::factory()->create([
+        'code' => 'total_kills',
+        'increment_value' => 10,
+        'base_requirement' => 30,
+        'max_requirement' => 60,
+    ]);
+
+    DestinationChallenge::factory()->create([
+        'destination_id' => $dest->id,
+        'challenge_id' => $challenge->id,
+        'status' => 'active',
+        'assigned_date' => now()->toDateString(),
+        'current_requirement' => 30,
+        'current_progress' => 10,
+        'failed_days' => 0,
+    ]);
+
+    // No blocking match — review should proceed normally
+    $service = app(ChallengeReviewService::class);
+    $result = $service->review();
+
+    expect($result['deferred'])->toBe(0);
+    expect($result['recap_destinations'])->toBe(1);
+
+    $recapNotification = ChallengeNotification::query()
+        ->where('type', 'recap')
+        ->first();
+
+    expect($recapNotification)->not->toBeNull();
 });

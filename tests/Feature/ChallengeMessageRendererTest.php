@@ -270,3 +270,24 @@ test('recap encouragement varies by failed count - 4 or more failed', function (
     expect($message)->not->toContain('Masih bisa dikejar besok.');
     expect($message)->not->toContain('Yuk lebih fokus besok.');
 });
+
+// --- review_delayed ---
+
+test('review_delayed renders correct format', function () {
+    $notification = ChallengeNotification::factory()->create([
+        'destination_challenge_id' => null,
+        'type' => 'review_delayed',
+        'status' => 'pending',
+        'payload' => [
+            'destination_id' => 1,
+            'blocking_match_ids' => [],
+        ],
+    ]);
+
+    $renderer = app(ChallengeMessageRenderer::class);
+    $message = $renderer->render($notification);
+
+    expect($message)->toContain('⏳ Review tantangan hari ini ditunda.');
+    expect($message)->toContain('Masih ada pertandingan yang belum diproses OpenDota.');
+    expect($message)->toContain('Kami akan mengecek ulang secara otomatis setelah hasil pertandingan tersedia.');
+});

@@ -20,6 +20,8 @@ class ReviewDailyChallenges extends Command
         $this->info("Incremented: {$result['incremented']}");
         $this->info("Failed: {$result['failed']}");
         $this->info("Recap destinations: {$result['recap_destinations']}");
+        $this->info("Deferred: {$result['deferred']}");
+        $this->info("Forced: {$result['forced']}");
 
         Log::info('ReviewDailyChallenges command completed', $result);
 

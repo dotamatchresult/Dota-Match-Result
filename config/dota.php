@@ -21,11 +21,12 @@ return [
     'daily_challenge' => [
         'enabled' => env('DAILY_CHALLENGE_ENABLED', true),
         'max_active_per_destination' => 5,
-        'assignment_time' => '00:00',
+        'assignment_time' => '08:00',
         'announcement_time' => '08:00',
         'review_time' => '23:00',
         'timezone' => 'Asia/Jakarta',
         'assignment_history_days' => 14,
+        'review_force_after_hours' => 12,
         'evaluators' => [
             'total_kills' => 'total_kills',
             'total_denies' => 'total_denies',

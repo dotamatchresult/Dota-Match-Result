@@ -80,11 +80,12 @@ Indexes: composite(`destination_challenge_id`, `type`, `status`), composite(`sta
 'daily_challenge' => [
     'enabled' => env('DAILY_CHALLENGE_ENABLED', true),
     'max_active_per_destination' => 5,
-    'assignment_time' => '00:00',
+    'assignment_time' => '08:00',
     'announcement_time' => '08:00',
     'review_time' => '23:00',
     'timezone' => 'Asia/Jakarta',
     'assignment_history_days' => 14,
+    'review_force_after_hours' => 12,
     'evaluators' => [
         'total_kills' => 'total_kills',
         'total_denies' => 'total_denies',
@@ -316,7 +317,7 @@ Implemented via `challenges:assign-daily` Artisan command + `ChallengeAssignment
 **Scheduler** (in `routes/console.php`):
 ```php
 Schedule::command('challenges:assign-daily')
-    ->dailyAt('00:00')
+    ->dailyAt('08:00')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping()
     ->runInBackground();
@@ -624,17 +625,185 @@ Recap destinations: 3
 - Empty queue handled gracefully (all zeros)
 - No recap notification generated when all challenges completed
 
-### **5.10 Out of Scope (Future Steps)**
-
-- OpenDota delay handling (Step 6)
-
 ---
 
-# **Step 6: Handling OpenDota Delays**
+# **Step 6: Handling OpenDota Delays** ✅ Implemented
 
-* Compare Steam match end time vs OpenDota result retrieval
-* If delay > 30 min → skip increment, wait until match arrives
-* Ensure next day's challenge does not get auto-completed due to delayed match from previous day
+### **6.1 Problem**
+
+Steam detects a match before OpenDota provides detailed data. At 23:00 review time, a match that finished near the cutoff may exist in Steam but lack OpenDota results — causing false review failures when the match would have fulfilled challenge requirements.
+
+```
+22:45 match starts
+23:05 match ends
+
+Steam knows match exists
+OpenDota still unavailable
+
+23:00 review runs → challenge incorrectly fails
+23:20 OpenDota result arrives → challenge should have completed
+```
+
+### **6.2 Updated Business Rules**
+
+Challenge assignment moved from `00:00` to `08:00` Asia/Jakarta:
+
+```
+08:00       new challenge assigned
+08:00-23:00 challenge window
+23:00       review
+23:00-08:00 free session
+```
+
+### **6.3 Config Changes** (`config/dota.php`)
+
+```php
+'daily_challenge' => [
+    'assignment_time' => '08:00',     // was '00:00'
+    'review_force_after_hours' => 12,  // new
+    // ...
+],
+```
+
+### **6.4 `finished_at` Column on `dota_matches`**
+
+**Migration** (`database/migrations/..._add_finished_at_to_dota_matches_table.php`):
+- Added `finished_at` (timestamp, nullable) after `match_timestamp`
+- Backfill: `match_timestamp + duration` (seconds from `match_data.duration`)
+- MySQL: `DATE_ADD(match_timestamp, INTERVAL JSON_UNQUOTE(JSON_EXTRACT(...)) SECOND)`
+- SQLite: `datetime(match_timestamp, '+' || CAST(JSON_EXTRACT(...) AS INTEGER) || ' seconds')`
+
+**DotaMatch model** — added `'finished_at'` to `$fillable` and `casts()` as `'datetime'`.
+
+**CheckMatchesCommand** — `calculateFinishedAt()` helper computes `start_time + duration` for new matches.
+
+### **6.5 ReviewDecision DTO**
+
+**File:** `app/DataObjects/Challenges/ReviewDecision.php`
+
+```php
+final readonly class ReviewDecision
+{
+    public bool $allowed;
+    public bool $blocked;
+    public bool $forceReview;
+    public array $blockingMatches;
+
+    static allowed(): self;
+    static blocked(array $matchIds): self;
+    static forceReview(array $matchIds): self;
+}
+```
+
+### **6.6 ChallengeReviewGuardService**
+
+**File:** `app/Services/DailyChallenge/ChallengeReviewGuardService.php`
+
+`canReviewDestination(Destination $destination): ReviewDecision`
+
+**Logic:**
+1. Find member IDs for destination via `destinationConfig` relationship
+2. Query `dota_matches` where: member JSON overlap, `finished_at < now()-1h`, `parse_status = 'pending'`
+3. No blocking matches → `allowed()`
+4. If `review_delayed` notification exists for this destination today AND `created_at < now()-12h` → `forceReview(matchIds)`
+5. Otherwise → `blocked(matchIds)`
+
+**JSON overlap query:** `DB::getDriverName()` dispatch — MySQL: `whereJsonContains('members', $id)`, SQLite: `where('members', 'like', '%'.$id.'%')`.
+
+### **6.7 ChallengeReviewService Modifications**
+
+**Constructor** now injects `ChallengeReviewGuardService`.
+
+**`review()` flow:**
+```
+For each destination with active challenges:
+    → ChallengeReviewGuardService.canReviewDestination($dest)
+        ├─ blocked  → create review_delayed notification (dedup), skip, deferred++
+        ├─ forceReview → create review_forced event per challenge, proceed, forced++
+        └─ allowed  → proceed
+```
+
+**`reviewDestination(Destination): array`** — public method reused by deferred review command.
+
+**`createDelayNotification()`** — deduplication: one `review_delayed` notification per destination per day.
+
+**New return keys:** `deferred`, `forced`.
+
+### **6.8 Deferred Review Processing**
+
+**Scheduler** (`routes/console.php`):
+```php
+Schedule::command('challenges:process-deferred-reviews')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+```
+
+**Command:** `app/Console/Commands/ProcessDeferredReviews.php` (`challenges:process-deferred-reviews`)
+
+Finds pending `review_delayed` notifications (status=pending, today). For each destination:
+- Calls guard → if still blocked, skip; if force, create `review_forced` events
+- Runs `ChallengeReviewService::reviewDestination()`
+- Marks notification `status=sent`
+
+Output: `Processed`, `Resolved`, `Forced`, `Still blocked`.
+
+### **6.9 Notification Rendering**
+
+Added `review_delayed` case to `ChallengeMessageRenderer::render()`:
+
+```
+⏳ Review tantangan hari ini ditunda.
+
+Masih ada pertandingan yang belum diproses OpenDota.
+Kami akan mengecek ulang secara otomatis setelah hasil pertandingan tersedia.
+```
+
+### **6.10 `review_forced` Audit Events**
+
+One `ChallengeEvent(type='review_forced')` per active challenge when force threshold exceeded. Payload carries `reason` and `blocking_match_ids`.
+
+### **6.11 Files Summary**
+
+**Created (4):**
+- `app/DataObjects/Challenges/ReviewDecision.php`
+- `app/Services/DailyChallenge/ChallengeReviewGuardService.php`
+- `app/Console/Commands/ProcessDeferredReviews.php`
+- `database/migrations/..._add_finished_at_to_dota_matches_table.php`
+
+**Modified (8):**
+- `config/dota.php`, `routes/console.php`
+- `app/Models/DotaMatch.php`, `app/Console/Commands/CheckMatchesCommand.php`
+- `app/Services/DailyChallenge/ChallengeReviewService.php`
+- `app/Console/Commands/ReviewDailyChallenges.php`
+- `app/Services/DailyChallenge/ChallengeMessageRenderer.php`
+
+### **6.12 Tests**
+
+`tests/Feature/ChallengeReviewGuardServiceTest.php` — 9 tests:
+- Normal review when no delayed matches, no members
+- Blocked when `parse_status=pending` & `finished_at > 1h`
+- Not blocked when match < 1h old, `parse_status=parsed`, or `parse_status=null`
+- Force review after threshold (13h-old delay notification)
+- Force not triggered within threshold (5h-old)
+- Multiple blocking matches returned
+
+`tests/Feature/ChallengeReviewServiceTest.php` — 5 new guard-integration tests:
+- `review_delayed` notification created when blocked
+- Increment/failed_days/recap skipped when blocked
+- `review_forced` events created + review proceeds when forceReview
+- Duplicate delay notifications not created (dedup)
+- Recap still created for non-blocked destinations
+
+`tests/Feature/ProcessDeferredReviewsCommandTest.php` — 5 tests:
+- Succeeds after match resolution (parse_status=parsed)
+- Stays blocked when match still pending
+- Force review via deferred command after threshold
+- Empty queue handled gracefully
+- Notification marked sent after processing
+
+`tests/Feature/ChallengeMessageRendererTest.php` — 1 new test:
+- `review_delayed` renders correct message format
 
 ---
 

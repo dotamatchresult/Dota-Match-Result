@@ -15,6 +15,7 @@ class DotaMatch extends Model
     protected $fillable = [
         'match_id',
         'match_timestamp',
+        'finished_at',
         'match_data',
         'members',
         'notified_at',
@@ -37,6 +38,7 @@ class DotaMatch extends Model
             'members' => 'array',
             'analysis_data' => 'array',
             'match_timestamp' => 'datetime',
+            'finished_at' => 'datetime',
             'notified_at' => 'datetime',
             'last_resent_at' => 'datetime',
             'parse_requested_at' => 'datetime',

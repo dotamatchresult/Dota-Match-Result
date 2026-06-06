@@ -20,6 +20,7 @@ class ChallengeMessageRenderer
             'completed' => $this->renderSingleCompleted($notification),
             'backlog_full' => $this->renderBacklogFull(),
             'recap' => $this->renderRecap($notification),
+            'review_delayed' => $this->renderReviewDelayed(),
             default => '',
         };
     }
@@ -148,5 +149,15 @@ class ChallengeMessageRenderer
         return "📚 TANTANGAN MENUMPUK\n\n"
             ."Kamu sudah punya {$max} tantangan aktif.\n\n"
             .'Selesaikan dulu yang ada.';
+    }
+
+    /**
+     * Render the review_delayed notification type.
+     */
+    private function renderReviewDelayed(): string
+    {
+        return "⏳ Review tantangan hari ini ditunda.\n\n"
+            ."Masih ada pertandingan yang belum diproses OpenDota.\n"
+            .'Kami akan mengecek ulang secara otomatis setelah hasil pertandingan tersedia.';
     }
 }
