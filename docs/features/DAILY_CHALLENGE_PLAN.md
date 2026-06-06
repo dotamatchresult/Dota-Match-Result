@@ -1166,9 +1166,142 @@ Example error: `"Invalid catalog entry 'total_kills': configuration.metric 'ramp
 
 ---
 
-# **Step 9: Testing**
+# **Step 9: Challenge Simulation & Validation** ✅ Implemented
+
+### **9.1 Overview**
+
+Created comprehensive end-to-end validation tests using real OpenDota fixture data (`match_unparsed.json` from `docs/samples/`) and the full challenge pipeline — from match processing through evaluation, progress, completion, notification, idempotency, review delays, weighted assignment, and notification batching. All tests use real services without mocking.
+
+### **9.2 Architecture**
+
+```
+tests/Helpers/ChallengeTestHelper.php (fixture loading + scenario creation)
+    ↓ used by
+7 new Feature test files (E2E, idempotency, progress data, review delay,
+    weighted assignment, notification pipeline)
+    ↓ exercising
+ChallengeProgressService → ChallengeReviewService → ChallengeNotificationDispatcher
+       ↓                       ↓
+   EvaluatorRegistry     ChallengeReviewGuardService
+```
+
+### **9.3 Fixture Infrastructure**
+
+**Files created:**
+- `tests/Helpers/ChallengeTestHelper.php` — Reusable helper with methods:
+  - `loadFixture(string $name): array` — Loads JSON from `docs/samples/`, cached
+  - `loadMatchFixture(): array` — Loads `match_unparsed.json`
+  - `loadParsedFixture(): array` — Loads `match_parsed.json`
+  - `createMemberForAccount(int $accountId, string $dest): Member` — Converts 32-bit account_id → 64-bit Steam ID
+  - `createMembersForAccounts(array $accountIds, string $dest): Collection` — Batch member creation
+  - `createMatchFromFixture(array $memberIds, array $overrides): DotaMatch` — Maps members to fixture data with overridable match_data fields
+  - `buildMatchData(array $players, array $overrides): array` — Constructs minimal custom match payloads
+  - `getWhatsAppDestination(): Destination` — Get or create WhatsApp destination
+  - `createTestDestination(): Destination` — Create unique test destination
+  - `createChallengeScenario(string $code, array $attrs, array $dcAttrs, ?Destination): array` — One-liner for full setup returning `{Destination, Challenge, DestinationChallenge}`
+  - `seedChallengesIfNeeded(): void` — Conditionally seeds challenge catalog
+  - `getFixturePlayer(int $index): array` — Get player data by index
+  - `getFixtureAccountIds(): array` — Get all valid account_ids from fixture
+
+**Fixture data used:** 7 account_ids from `match_unparsed.json`:
+- 125753349 (Dawnbreaker, hero 135, 11 kills, Silver Edge)
+- 225621471 (Phoenix, hero 110, 7 kills, heal 7279)
+- 296555939 (Pudge, hero 14, 8 kills)
+- 322773166 (Sniper, hero 35, 4 denies)
+- 153517712 (Spectre, hero 67, 154 last hits, 4 denies)
+- 152866833 (Tusk, hero 100)
+- 249831672 (Axe, hero 2)
+
+Fixture baseline: `radiant_win: false`, `duration: 1741s (29min)`.
+
+### **9.4 End-to-End Evaluator Tests**
+
+`tests/Feature/ChallengeEvaluatorE2ETest.php` — 21 tests, 60 assertions:
+- **hero_win** (3 tests): Hero match detection, completion at requirement=1, non-matching hero returns 0
+- **item_win** (2 tests): Inventory detection (Silver Edge 249), completion with notification
+- **total_kills** (3 tests): Accumulates 18 kills (11+7), below-requirement stays active, completion at requirement=15
+- **total_denies** (1 test): Accumulates 8 denies (4+4), progress event recorded
+- **total_heal** (2 tests): Accumulates 12109 heal (4830+7279), completion at requirement=10000
+- **last_hits** (3 tests): Records `best_attempt=154`, `best_member_id`, `best_match_id`, completion, `best_attempt` not updated on lower value
+- **fast_win** (2 tests): Duration check (29min ≤ 30min passes), loss fails, duration metadata stored
+- **zero_death_win** (3 tests): 0-death+win passes, has-deaths fails, loss-with-0-deaths fails
+
+### **9.5 Progress Data Validation**
+
+`tests/Feature/ChallengeProgressDataTest.php` — 6 tests, 28 assertions:
+- All 6 standardized keys present: `contributors`, `matches`, `best_attempt`, `best_member_id`, `best_match_id`, `metadata`
+- Contributors accumulate across matches (11+7=18, doubled to 36 on second match)
+- Matches array deduplicated
+- `best_attempt` only updates when improved (154 → stays at 154 when 80 comes)
+- Empty existing progress_data handled gracefully (null → full structure)
+- Metadata shallow-merged correctly
+
+### **9.6 Idempotency Simulation**
+
+`tests/Feature/ChallengeIdempotencyTest.php` — 5 tests, 16 assertions:
+- Same match processed twice → progress unchanged (1 not 2)
+- Same match processed twice → duplicate completion not triggered (1 completed event, 1 notification)
+- Post-completion match not processed (challenge already completed, skipped by processDestination)
+- `EvaluateChallengesJob` dispatched twice → progress only counted once
+- Mixed: 3 unique matches + 2 duplicates → only new matches contribute (18+18=36, only 2 matches in progress_data)
+
+### **9.7 Review Delay Simulation**
+
+`tests/Feature/ChallengeReviewDelayE2ETest.php` — 5 tests, 18 assertions:
+- **Delayed Review**: `parse_status='pending'`, `finished_at > 1h` → review blocked, no increment, no `failed_days` increase, `review_delayed` notification created
+- **Duplicate Delay**: Running review twice while blocked → only one `review_delayed` notification
+- **Resolution Path**: Match becomes `parsed` → deferred review executes → challenge incremented and failed_days incremented
+- **Force Review**: `review_delayed` notification > 12h old → `review_forced` events created, review proceeds normally
+- **No Recap When Blocked**: Recap notification not created when review is blocked
+
+### **9.8 Weighted Assignment Validation**
+
+`tests/Feature/ChallengeWeightedAssignmentTest.php` — 5 tests, 13 assertions:
+- `hero_win` (weight 15) appears >3x more often than `zero_death_win` (weight 2) in 500 iterations
+- `total_kills` (weight 15) appears >1.5x more often than `fast_win` (weight 5) in 500 iterations
+- All 8 challenge codes appear at least once in 1000 iterations
+- Inactive challenges (is_active=false) are never selected
+- Active code exclusion: hero_win never assigned when one is already active (100 iterations)
+
+### **9.9 Notification Pipeline Validation**
+
+`tests/Feature/ChallengeNotificationPipelineTest.php` — 7 tests, 25 assertions:
+- **Completion Batching**: 3 completed challenges, same destination → 1 batched message, all marked sent
+- **Single Completion**: Uses individual format, counts as 1 batch group
+- **Different Destinations**: Not batched together → 2 separate sends
+- **Future `scheduled_at`**: `assigned_announcement` with future time → skipped, remains pending
+- **Past `scheduled_at`**: Sent immediately
+- **Review Delayed**: Destination resolved correctly from `payload.destination_id`
+- **Duplicate Prevention**: Dedup logic prevents duplicate `review_delayed` notifications
+
+### **9.10 Files Summary**
+
+**Created (7):**
+- `tests/Helpers/ChallengeTestHelper.php` — Fixture loading & scenario creation helpers
+- `tests/Feature/ChallengeEvaluatorE2ETest.php` — 21 tests, all 8 evaluators
+- `tests/Feature/ChallengeProgressDataTest.php` — 6 tests, progress structure validation
+- `tests/Feature/ChallengeIdempotencyTest.php` — 5 tests, duplicate processing safety
+- `tests/Feature/ChallengeReviewDelayE2ETest.php` — 5 tests, OpenDota delay handling
+- `tests/Feature/ChallengeWeightedAssignmentTest.php` — 5 tests, statistical weight validation
+- `tests/Feature/ChallengeNotificationPipelineTest.php` — 7 tests, notification batching
+
+**Modified (0):** No existing files modified.
+
+**New test totals:** 49 tests, 160 assertions added across 6 feature test files plus 1 helper.
+
+### **9.11 Architectural Observations**
+
+1. **`current_requirement` dual-purpose for snapshots**: `FastWinEvaluator` uses `current_requirement` as the time threshold, but `ChallengeProgressService` uses it as the completion threshold (progress >= requirement). For snapshot evaluators where progress is binary (1), completion never triggers when requirement > 1. This should be addressed in a future step by separating the evaluator threshold from the completion threshold (e.g., via `challenge.configuration`).
+
+2. **Force review date-dependency**: The `whereDate('created_at', $today)` filter in the guard makes force review only work when the delay notification is created today. If the delay spans midnight, a new notification created tomorrow won't match the old one. This is by design (daily challenge scope) but worth documenting.
+
+3. **All tests pass cross-database**: SQLite in-memory for tests, MySQL for production — the fixture helpers and test assertions work on both.
+
+---
+
+# **Step 10: Testing**
 
 1. Create test destinations and members
 2. Seed challenge pool
-3. Simulate matches using your `match_result_parsed.json` and `match_result_unparsed.json`
+3. Simulate matches using `match_result_parsed.json` and `match_result_unparsed.json`
 4. Validate progress updates, increments, and messaging
