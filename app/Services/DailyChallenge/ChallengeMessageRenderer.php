@@ -48,11 +48,9 @@ class ChallengeMessageRenderer
         $lines = [
             "🎉 TANTANGAN SELESAI",
             '',
-            "Tim kamu menyelesaikan {$count} tantangan:",
+            "Kalian udah selesaikan {$count} tantangan:",
             '',
             ...$descriptions,
-            '',
-            'Teruskan.',
         ];
 
         return implode("\n", $lines);
@@ -73,11 +71,15 @@ class ChallengeMessageRenderer
         $progress = $destinationChallenge->current_progress ?? 0;
         $requirement = $destinationChallenge->current_requirement ?? 0;
 
-        return "🎯 TANTANGAN HARIAN\n\n"
-            ."{$description}\n\n"
-            ."Progress:\n"
-            ."{$progress} / {$requirement}";
-            // ."\n\nSemoga beruntung.";
+        return implode("\n", [
+            "🎯 TANTANGAN HARIAN",
+            '',
+            "{$description}",
+            '',
+            "Progress:",
+            "{$progress} / {$requirement}",
+            // "\n\nSemoga beruntung."
+        ]);
     }
 
     /**
@@ -93,9 +95,19 @@ class ChallengeMessageRenderer
 
         $description = $this->descriptionService->describe($destinationChallenge);
 
-        return "🎉 TANTANGAN SELESAI\n\n"
-            ."✅ {$description}\n\n"
-            .'Kerja bagus.';
+        $comments = [
+            "Kerja bagus 👍🏻",
+            "Meski kroco tapi boleh juga 💯",
+        ];
+        $randomComment = $comments[array_rand($comments)];
+
+        return implode("\n", [
+            "🎉 TANTANGAN SELESAI",
+            '',
+            "✅ {$description}",
+            '',
+            $randomComment,
+        ]);
     }
 
     /**
@@ -114,9 +126,22 @@ class ChallengeMessageRenderer
             return '';
         }
 
+        $failOneComments = [
+            'Wah, pada kesusahan ya 😢',
+            'Jangan sedih, coba evaluasi lagi strateginya 💡',
+            'Mungkin bisa coba hero/role lain? 🤔',
+        ];
+        $failOneComment = $failOneComments[array_rand($failOneComments)];
+
+        $failMultipleComments = [
+            'Pancen kroco jan arek-arek iki 🪳',
+            'Main dota kui nggo strategi bos 😉',
+        ];
+        $failMultipleComment = $failMultipleComments[array_rand($failMultipleComments)];
+
         $encouragement = match (true) {
-            $failedCount === 1 => 'Masih bisa dikejar besok.',
-            $failedCount >= 2 && $failedCount <= 3 => 'Yuk lebih fokus besok.',
+            $failedCount === 1 => $failOneComment,
+            $failedCount >= 2 => $failMultipleComment,
             default => 'Evaluasi strategi kalian.',
         };
 
@@ -146,9 +171,13 @@ class ChallengeMessageRenderer
     {
         $max = (int) config('dota.daily_challenge.max_active_per_destination', 5);
 
-        return "📚 TANTANGAN MENUMPUK\n\n"
-            ."Kamu sudah punya {$max} tantangan aktif.\n\n"
-            .'Selesaikan dulu yang ada.';
+        return implode("\n", [
+            "📚 TANTANGAN MENUMPUK",
+            '',
+            "Kalian sudah punya {$max} tantangan aktif.",
+            '',
+            'Minimal main sing bener bos 🤪',
+        ]);
     }
 
     /**
@@ -156,8 +185,11 @@ class ChallengeMessageRenderer
      */
     private function renderReviewDelayed(): string
     {
-        return "⏳ Review tantangan hari ini ditunda.\n\n"
-            ."Masih ada pertandingan yang belum diproses OpenDota.\n"
-            .'Kami akan mengecek ulang secara otomatis setelah hasil pertandingan tersedia.';
+        return implode("\n", [
+            "⏳ Review tantangan hari ini ditunda.",
+            '',
+            "Masih ada pertandingan yang belum diproses OpenDota.",
+            'Kami akan mengecek ulang secara otomatis setelah hasil pertandingan tersedia.',
+        ]);
     }
 }
