@@ -37,6 +37,7 @@ class ChallengeFactory extends Factory
             'name' => fake()->words(3, true),
             'description' => fake()->sentence(),
             'category' => $categories[$code],
+            'group' => null,
             'base_requirement' => $isSnapshot ? fake()->numberBetween(5, 50) : fake()->numberBetween(20, 100),
             'increment_value' => $isSnapshot ? 0 : fake()->numberBetween(5, 20),
             'max_requirement' => $isSnapshot ? fake()->numberBetween(5, 50) : fake()->numberBetween(60, 200),

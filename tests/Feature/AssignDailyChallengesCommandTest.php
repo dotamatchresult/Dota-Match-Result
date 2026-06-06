@@ -457,3 +457,215 @@ test('hero_win assignment excludes Meepo from random hero pool', function () {
         }
     }
 });
+
+// --- Group Exclusion (Step 10) ---
+
+test('group exclusion prevents assignment from same group when group challenge is active', function () {
+    $destination = Destination::factory()->create();
+
+    // Get a kills-group challenge and make it active
+    $killsChallenge = Challenge::query()->where('group', 'kills')->first();
+    expect($killsChallenge)->not->toBeNull();
+
+    DestinationChallenge::factory()->create([
+        'destination_id' => $destination->id,
+        'challenge_id' => $killsChallenge->id,
+        'status' => 'active',
+        'assigned_date' => today()->subDay()->toDateString(),
+    ]);
+
+    // Run assignment multiple times and verify no kills-group challenge is assigned
+    for ($i = 0; $i < 15; $i++) {
+        DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->delete();
+
+        ChallengeEvent::query()->delete();
+        ChallengeNotification::query()->delete();
+
+        artisan('challenges:assign-daily')->assertSuccessful();
+
+        $dc = DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->first();
+
+        if ($dc) {
+            $assignedChallenge = Challenge::find($dc->challenge_id);
+
+            expect($assignedChallenge->group)->not->toBe('kills');
+        }
+    }
+});
+
+test('group exclusion works alongside code exclusion', function () {
+    $destination = Destination::factory()->create();
+
+    // Make a specific kills-group challenge active
+    $activeCode = Challenge::query()->where('code', 'total_kills')->first();
+    expect($activeCode)->not->toBeNull();
+
+    DestinationChallenge::factory()->create([
+        'destination_id' => $destination->id,
+        'challenge_id' => $activeCode->id,
+        'status' => 'active',
+        'assigned_date' => today()->subDay()->toDateString(),
+    ]);
+
+    // Run assignment and verify neither the same code nor same group is assigned
+    for ($i = 0; $i < 10; $i++) {
+        DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->delete();
+
+        ChallengeEvent::query()->delete();
+        ChallengeNotification::query()->delete();
+
+        artisan('challenges:assign-daily')->assertSuccessful();
+
+        $dc = DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->first();
+
+        if ($dc) {
+            $assignedChallenge = Challenge::find($dc->challenge_id);
+
+            // Neither same code nor same group
+            expect($assignedChallenge->code)->not->toBe('total_kills');
+            expect($assignedChallenge->group)->not->toBe('kills');
+        }
+    }
+});
+
+test('group exclusion does not block challenges from different groups', function () {
+    $destination = Destination::factory()->create();
+
+    // Make a kills-group challenge active
+    $killsChallenge = Challenge::query()->where('group', 'kills')->first();
+    DestinationChallenge::factory()->create([
+        'destination_id' => $destination->id,
+        'challenge_id' => $killsChallenge->id,
+        'status' => 'active',
+        'assigned_date' => today()->subDay()->toDateString(),
+    ]);
+
+    // Make an assists-group challenge active
+    $assistsChallenge = Challenge::query()->where('group', 'assists')->first();
+    DestinationChallenge::factory()->create([
+        'destination_id' => $destination->id,
+        'challenge_id' => $assistsChallenge->id,
+        'status' => 'active',
+        'assigned_date' => today()->subDay()->toDateString(),
+    ]);
+
+    // Run assignment - should still get challenges from other groups (e.g., hero_win, item_win, healing)
+    $assignedGroups = [];
+
+    for ($i = 0; $i < 10; $i++) {
+        DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->delete();
+
+        ChallengeEvent::query()->delete();
+        ChallengeNotification::query()->delete();
+
+        artisan('challenges:assign-daily')->assertSuccessful();
+
+        $dc = DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->first();
+
+        if ($dc) {
+            $assignedChallenge = Challenge::find($dc->challenge_id);
+            $assignedGroups[] = $assignedChallenge->group;
+
+            // Should not be from blocked groups
+            expect($assignedChallenge->group)->not->toBe('kills');
+            expect($assignedChallenge->group)->not->toBe('assists');
+        }
+    }
+
+    // We should have seen some assignments
+    expect($assignedGroups)->not->toBeEmpty();
+});
+
+test('group exclusion falls back to code-only when all groups are active', function () {
+    // Temporarily raise the max active limit so we can test the group-exhaustion fallback
+    config()->set('dota.daily_challenge.max_active_per_destination', 50);
+
+    $destination = Destination::factory()->create();
+
+    // Create one active challenge from every group
+    $allGroups = Challenge::query()->whereNotNull('group')->pluck('group')->unique();
+    foreach ($allGroups as $group) {
+        $challenge = Challenge::query()->where('group', $group)->first();
+        if ($challenge) {
+            DestinationChallenge::factory()->create([
+                'destination_id' => $destination->id,
+                'challenge_id' => $challenge->id,
+                'status' => 'active',
+                'assigned_date' => today()->subDay()->toDateString(),
+            ]);
+        }
+    }
+
+    // Run assignment - should still work via final fallback (code exclusion only)
+    artisan('challenges:assign-daily')->assertSuccessful();
+
+    $dc = DestinationChallenge::query()
+        ->where('destination_id', $destination->id)
+        ->whereDate('assigned_date', today())
+        ->first();
+
+    // Should still get an assignment via final fallback — different code, possibly same group
+    expect($dc)->not->toBeNull();
+});
+
+test('unique-group challenges do not block other challenges', function () {
+    $destination = Destination::factory()->create();
+
+    // Make hero_win (unique group) active
+    $heroWin = Challenge::query()->where('code', 'hero_win')->first();
+    DestinationChallenge::factory()->create([
+        'destination_id' => $destination->id,
+        'challenge_id' => $heroWin->id,
+        'status' => 'active',
+        'assigned_date' => today()->subDay()->toDateString(),
+    ]);
+
+    // Run assignment - hero_win group only has hero_win, so it shouldn't block other challenges
+    // But hero_win code itself is excluded by active code exclusion
+    $assignedCodes = [];
+
+    for ($i = 0; $i < 10; $i++) {
+        DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->delete();
+
+        ChallengeEvent::query()->delete();
+        ChallengeNotification::query()->delete();
+
+        artisan('challenges:assign-daily')->assertSuccessful();
+
+        $dc = DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->first();
+
+        if ($dc) {
+            $assignedChallenge = Challenge::find($dc->challenge_id);
+            $assignedCodes[] = $assignedChallenge->code;
+
+            // hero_win code is excluded by active code exclusion, not group
+            expect($assignedChallenge->code)->not->toBe('hero_win');
+        }
+    }
+
+    expect($assignedCodes)->not->toBeEmpty();
+});

@@ -257,3 +257,159 @@ test('last_hits uses last_hits metric', function () {
 
     expect($entry['configuration']['metric'])->toBe('last_hits');
 });
+
+// --- Catalog Count & Group Validation (Step 10) ---
+
+test('catalog contains 27 challenge entries', function () {
+    $definitions = ChallengeCatalog::definitions();
+
+    expect($definitions)->toHaveCount(27);
+});
+
+test('all catalog entries have a non-null group', function () {
+    $definitions = ChallengeCatalog::definitions();
+
+    foreach ($definitions as $definition) {
+        expect($definition)->toHaveKey('group');
+        expect($definition['group'])->not->toBeNull();
+        expect($definition['group'])->toBeString();
+        expect($definition['group'])->not->toBe('');
+    }
+});
+
+test('catalog entries have correct group assignments', function () {
+    $definitions = ChallengeCatalog::definitions();
+    $groups = collect($definitions)->pluck('group', 'code');
+
+    // Existing groups
+    expect($groups['total_kills'])->toBe('kills');
+    expect($groups['total_denies'])->toBe('denies');
+    expect($groups['total_heal'])->toBe('healing');
+    expect($groups['hero_win'])->toBe('hero_win');
+    expect($groups['item_win'])->toBe('item_win');
+    expect($groups['last_hits'])->toBe('last_hits');
+    expect($groups['zero_death_win'])->toBe('survival');
+    expect($groups['fast_win'])->toBe('speed');
+
+    // New accumulative team
+    expect($groups['total_assists'])->toBe('assists');
+    expect($groups['total_hero_damage'])->toBe('hero_damage');
+    expect($groups['total_tower_damage'])->toBe('tower_damage');
+    expect($groups['total_last_hits'])->toBe('last_hits');
+    expect($groups['total_net_worth'])->toBe('economy');
+
+    // New single match team
+    expect($groups['team_assists_match'])->toBe('assists');
+    expect($groups['team_kills_match'])->toBe('kills');
+    expect($groups['team_last_hits_match'])->toBe('last_hits');
+    expect($groups['team_denies_match'])->toBe('denies');
+    expect($groups['team_hero_damage_match'])->toBe('hero_damage');
+    expect($groups['team_tower_damage_match'])->toBe('tower_damage');
+
+    // New single match individual
+    expect($groups['player_kills_match'])->toBe('kills');
+    expect($groups['player_assists_match'])->toBe('assists');
+    expect($groups['player_last_hits_match'])->toBe('last_hits');
+    expect($groups['player_hero_damage_match'])->toBe('hero_damage');
+    expect($groups['player_tower_damage_match'])->toBe('tower_damage');
+    expect($groups['player_net_worth_match'])->toBe('economy');
+    expect($groups['player_gpm_match'])->toBe('economy');
+    expect($groups['player_xpm_match'])->toBe('economy');
+});
+
+test('new accumulative team challenges have correct metrics', function () {
+    $definitions = ChallengeCatalog::definitions();
+    $entries = collect($definitions)->keyBy('code');
+
+    expect($entries['total_assists']['configuration']['metric'])->toBe('assists');
+    expect($entries['total_hero_damage']['configuration']['metric'])->toBe('hero_damage');
+    expect($entries['total_tower_damage']['configuration']['metric'])->toBe('tower_damage');
+    expect($entries['total_last_hits']['configuration']['metric'])->toBe('last_hits');
+    expect($entries['total_net_worth']['configuration']['metric'])->toBe('net_worth');
+});
+
+test('new single match team challenges have correct metrics and are snapshots', function () {
+    $definitions = ChallengeCatalog::definitions();
+    $entries = collect($definitions)->keyBy('code');
+
+    $teamSnapshotCodes = [
+        'team_assists_match', 'team_kills_match', 'team_last_hits_match',
+        'team_denies_match', 'team_hero_damage_match', 'team_tower_damage_match',
+    ];
+
+    foreach ($teamSnapshotCodes as $code) {
+        expect($entries[$code]['category'])->toBe('snapshot');
+        expect($entries[$code]['increment_value'])->toBe(0);
+        expect($entries[$code]['base_requirement'])->toBe($entries[$code]['max_requirement']);
+    }
+});
+
+test('new single match individual challenges have correct metrics and are snapshots', function () {
+    $definitions = ChallengeCatalog::definitions();
+    $entries = collect($definitions)->keyBy('code');
+
+    $individualCodes = [
+        'player_kills_match', 'player_assists_match', 'player_last_hits_match',
+        'player_hero_damage_match', 'player_tower_damage_match',
+        'player_net_worth_match', 'player_gpm_match', 'player_xpm_match',
+    ];
+
+    foreach ($individualCodes as $code) {
+        expect($entries[$code]['category'])->toBe('snapshot');
+        expect($entries[$code]['increment_value'])->toBe(0);
+        expect($entries[$code]['configuration']['metric'])->toBeString();
+    }
+});
+
+test('all metric-based challenges reference valid metrics', function () {
+    $definitions = ChallengeCatalog::definitions();
+
+    foreach ($definitions as $definition) {
+        if (isset($definition['configuration']['metric'])) {
+            expect(\App\Support\DailyChallenge\MetricRegistry::exists($definition['configuration']['metric']))
+                ->toBeTrue("Metric '{$definition['configuration']['metric']}' for {$definition['code']} is invalid");
+        }
+    }
+});
+
+test('catalog weights are consistent with step 10 guidelines', function () {
+    $definitions = ChallengeCatalog::definitions();
+    $weights = collect($definitions)->pluck('weight', 'code');
+
+    // Common (15): kills, assists, hero_win
+    expect($weights['total_kills'])->toBe(15);
+    expect($weights['total_assists'])->toBe(15);
+    expect($weights['hero_win'])->toBe(15);
+    expect($weights['team_kills_match'])->toBe(15);
+    expect($weights['team_assists_match'])->toBe(15);
+    expect($weights['player_kills_match'])->toBe(15);
+    expect($weights['player_assists_match'])->toBe(15);
+
+    // Medium-high (12): last_hits group
+    expect($weights['total_last_hits'])->toBe(12);
+    expect($weights['team_last_hits_match'])->toBe(12);
+    expect($weights['player_last_hits_match'])->toBe(12);
+
+    // Medium (10): denies, item_win, hero_damage
+    expect($weights['total_denies'])->toBe(10);
+    expect($weights['item_win'])->toBe(10);
+    expect($weights['total_hero_damage'])->toBe(10);
+    expect($weights['team_hero_damage_match'])->toBe(10);
+    expect($weights['player_hero_damage_match'])->toBe(10);
+
+    // Medium-low (8): healing, last_hits (individual), tower_damage, denies team, economy, net_worth
+    expect($weights['total_heal'])->toBe(8);
+    expect($weights['last_hits'])->toBe(8);
+    expect($weights['total_tower_damage'])->toBe(8);
+    expect($weights['team_tower_damage_match'])->toBe(8);
+    expect($weights['player_tower_damage_match'])->toBe(8);
+    expect($weights['team_denies_match'])->toBe(8);
+    expect($weights['total_net_worth'])->toBe(8);
+    expect($weights['player_net_worth_match'])->toBe(8);
+
+    // Rare (5 or less): fast_win, zero_death_win, extreme GPM/XPM
+    expect($weights['fast_win'])->toBe(5);
+    expect($weights['zero_death_win'])->toBe(2);
+    expect($weights['player_gpm_match'])->toBe(3);
+    expect($weights['player_xpm_match'])->toBe(3);
+});

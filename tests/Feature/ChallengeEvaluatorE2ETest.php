@@ -693,3 +693,262 @@ test('zero_death_win: fails when match is a loss even with 0 deaths', function (
 
     expect($scenario['destinationChallenge']->current_progress)->toBe(0);
 });
+
+// ──────────────────────────────────────
+// 9. Accumulative Team: total_assists (Step 10)
+// ──────────────────────────────────────
+
+test('total_assists: accumulates assists across team members', function () {
+    // Pudge (player 2, acct 296555939): 28 assists
+    // Sniper (player 3, acct 322773166): 17 assists
+    $accountIds = [296555939, 322773166];
+    $members = ChallengeTestHelper::createMembersForAccounts($accountIds);
+
+    $scenario = ChallengeTestHelper::createChallengeScenario('total_assists', [
+        'configuration' => ['metric' => 'assists'],
+        'base_requirement' => 60,
+    ], [
+        'current_requirement' => 60,
+        'current_progress' => 0,
+    ]);
+
+    $match = ChallengeTestHelper::createMatchFromFixture($members->pluck('id')->toArray());
+    $this->progressService->processMatch($match);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(45);
+    expect($scenario['destinationChallenge']->progress_data['matches'])->toContain((int) $match->match_id);
+});
+
+test('total_assists: completes when requirement met', function () {
+    $accountIds = [296555939, 322773166];
+    $members = ChallengeTestHelper::createMembersForAccounts($accountIds);
+
+    $scenario = ChallengeTestHelper::createChallengeScenario('total_assists', [
+        'configuration' => ['metric' => 'assists'],
+        'base_requirement' => 40,
+    ], [
+        'current_requirement' => 40,
+        'current_progress' => 0,
+    ]);
+
+    $match = ChallengeTestHelper::createMatchFromFixture($members->pluck('id')->toArray());
+    $this->progressService->processMatch($match);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(45);
+    expect($scenario['destinationChallenge']->status)->toBe('completed');
+
+    $notification = ChallengeNotification::query()
+        ->where('destination_challenge_id', $scenario['destinationChallenge']->id)
+        ->where('type', 'completed')
+        ->first();
+    expect($notification)->not->toBeNull();
+});
+
+// ──────────────────────────────────────
+// 10. Single Match Team: team_kills_match (Step 10)
+// ──────────────────────────────────────
+
+test('team_kills_match: records best team kills attempt in a single match', function () {
+    $accountIds = [125753349, 225621471];
+    $members = ChallengeTestHelper::createMembersForAccounts($accountIds);
+
+    $scenario = ChallengeTestHelper::createChallengeScenario('team_kills_match', [
+        'configuration' => ['metric' => 'kills'],
+        'base_requirement' => 30,
+    ], [
+        'current_requirement' => 30,
+        'current_progress' => 0,
+    ]);
+
+    $match = ChallengeTestHelper::createMatchFromFixture($members->pluck('id')->toArray());
+    $this->progressService->processMatch($match);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(18);
+    expect($scenario['destinationChallenge']->progress_data['best_attempt'])->toBe(18);
+    expect($scenario['destinationChallenge']->progress_data['best_match_id'])->toBe((int) $match->match_id);
+});
+
+test('team_kills_match: best_attempt not updated when lower value', function () {
+    $accountIds = [125753349, 225621471];
+    $members = ChallengeTestHelper::createMembersForAccounts($accountIds);
+
+    $scenario = ChallengeTestHelper::createChallengeScenario('team_kills_match', [
+        'configuration' => ['metric' => 'kills'],
+        'base_requirement' => 30,
+    ], [
+        'current_requirement' => 30,
+        'current_progress' => 0,
+    ]);
+
+    $match1 = ChallengeTestHelper::createMatchFromFixture($members->pluck('id')->toArray());
+    $this->progressService->processMatch($match1);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(18);
+    expect($scenario['destinationChallenge']->progress_data['best_attempt'])->toBe(18);
+
+    $dawnMember = $members->first();
+    $match2 = ChallengeTestHelper::createMatchFromFixture([$dawnMember->id], [
+        'match_id' => '9999999999',
+    ]);
+    $this->progressService->processMatch($match2);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(18);
+    expect($scenario['destinationChallenge']->progress_data['best_attempt'])->toBe(18);
+});
+
+test('team_kills_match: completes when best_attempt meets requirement', function () {
+    $accountIds = [125753349, 225621471];
+    $members = ChallengeTestHelper::createMembersForAccounts($accountIds);
+
+    $scenario = ChallengeTestHelper::createChallengeScenario('team_kills_match', [
+        'configuration' => ['metric' => 'kills'],
+        'base_requirement' => 15,
+    ], [
+        'current_requirement' => 15,
+        'current_progress' => 0,
+    ]);
+
+    $match = ChallengeTestHelper::createMatchFromFixture($members->pluck('id')->toArray());
+    $this->progressService->processMatch($match);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(18);
+    expect($scenario['destinationChallenge']->status)->toBe('completed');
+});
+
+// ──────────────────────────────────────
+// 11. Single Match Individual: player_kills_match & gpm/xpm (Step 10)
+// ──────────────────────────────────────
+
+test('player_kills_match: records best individual kills in a match', function () {
+    $accountIds = [125753349, 225621471, 296555939];
+    $members = ChallengeTestHelper::createMembersForAccounts($accountIds);
+
+    $scenario = ChallengeTestHelper::createChallengeScenario('player_kills_match', [
+        'configuration' => ['metric' => 'kills'],
+        'base_requirement' => 12,
+    ], [
+        'current_requirement' => 12,
+        'current_progress' => 0,
+    ]);
+
+    $match = ChallengeTestHelper::createMatchFromFixture($members->pluck('id')->toArray());
+    $this->progressService->processMatch($match);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(11);
+    expect($scenario['destinationChallenge']->progress_data['best_attempt'])->toBe(11);
+    expect($scenario['destinationChallenge']->progress_data['best_member_id'])->not->toBeNull();
+    expect($scenario['destinationChallenge']->progress_data['best_match_id'])->toBe((int) $match->match_id);
+});
+
+test('player_kills_match: completes when individual reaches requirement', function () {
+    $accountIds = [125753349];
+    $members = ChallengeTestHelper::createMembersForAccounts($accountIds);
+
+    $scenario = ChallengeTestHelper::createChallengeScenario('player_kills_match', [
+        'configuration' => ['metric' => 'kills'],
+        'base_requirement' => 10,
+    ], [
+        'current_requirement' => 10,
+        'current_progress' => 0,
+    ]);
+
+    $match = ChallengeTestHelper::createMatchFromFixture($members->pluck('id')->toArray());
+    $this->progressService->processMatch($match);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(11);
+    expect($scenario['destinationChallenge']->status)->toBe('completed');
+});
+
+test('player_gpm_match: tracks GPM correctly', function () {
+    $accountId = 125753349;
+    $member = ChallengeTestHelper::createMemberForAccount($accountId);
+
+    $scenario = ChallengeTestHelper::createChallengeScenario('player_gpm_match', [
+        'configuration' => ['metric' => 'gold_per_min'],
+        'base_requirement' => 500,
+    ], [
+        'current_requirement' => 500,
+        'current_progress' => 0,
+    ]);
+
+    $matchData = ChallengeTestHelper::buildMatchData([
+        [
+            'account_id' => $accountId,
+            'player_slot' => 0,
+            'hero_id' => 135,
+            'kills' => 5,
+            'deaths' => 3,
+            'assists' => 10,
+            'last_hits' => 100,
+            'denies' => 5,
+            'hero_healing' => 0,
+            'gold_per_min' => 520,
+            'xp_per_min' => 610,
+            'item_0' => 0, 'item_1' => 0, 'item_2' => 0,
+            'item_3' => 0, 'item_4' => 0, 'item_5' => 0,
+        ],
+    ], ['radiant_win' => true, 'duration' => 1800]);
+
+    $match = DotaMatch::create([
+        'match_id' => (string) fake()->unique()->randomNumber(9, true),
+        'match_data' => $matchData,
+        'members' => [$member->id],
+    ]);
+
+    $this->progressService->processMatch($match);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(520);
+    expect($scenario['destinationChallenge']->status)->toBe('completed');
+});
+
+test('player_xpm_match: tracks XPM correctly', function () {
+    $accountId = 125753349;
+    $member = ChallengeTestHelper::createMemberForAccount($accountId);
+
+    $scenario = ChallengeTestHelper::createChallengeScenario('player_xpm_match', [
+        'configuration' => ['metric' => 'xp_per_min'],
+        'base_requirement' => 600,
+    ], [
+        'current_requirement' => 600,
+        'current_progress' => 0,
+    ]);
+
+    $matchData = ChallengeTestHelper::buildMatchData([
+        [
+            'account_id' => $accountId,
+            'player_slot' => 0,
+            'hero_id' => 135,
+            'kills' => 5,
+            'deaths' => 3,
+            'assists' => 10,
+            'last_hits' => 100,
+            'denies' => 5,
+            'hero_healing' => 0,
+            'gold_per_min' => 450,
+            'xp_per_min' => 650,
+            'item_0' => 0, 'item_1' => 0, 'item_2' => 0,
+            'item_3' => 0, 'item_4' => 0, 'item_5' => 0,
+        ],
+    ], ['radiant_win' => true, 'duration' => 1800]);
+
+    $match = DotaMatch::create([
+        'match_id' => (string) fake()->unique()->randomNumber(9, true),
+        'match_data' => $matchData,
+        'members' => [$member->id],
+    ]);
+
+    $this->progressService->processMatch($match);
+    $scenario['destinationChallenge']->refresh();
+
+    expect($scenario['destinationChallenge']->current_progress)->toBe(650);
+    expect($scenario['destinationChallenge']->status)->toBe('completed');
+});

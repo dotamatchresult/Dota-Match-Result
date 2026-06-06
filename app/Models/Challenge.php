@@ -16,6 +16,7 @@ class Challenge extends Model
         'name',
         'description',
         'category',
+        'group',
         'base_requirement',
         'increment_value',
         'max_requirement',

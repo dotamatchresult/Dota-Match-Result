@@ -1299,9 +1299,129 @@ Fixture baseline: `radiant_win: false`, `duration: 1741s (29min)`.
 
 ---
 
-# **Step 10: Testing**
+# **Step 10: Challenge Content Expansion** ✅ Implemented
 
-1. Create test destinations and members
-2. Seed challenge pool
-3. Simulate matches using `match_result_parsed.json` and `match_result_unparsed.json`
-4. Validate progress updates, increments, and messaging
+### 10.1 Overview
+
+Expanded the challenge catalog from 8 to 27 entries using the 3 existing generic evaluators (`AccumulativeTeamMetricEvaluator`, `SingleMatchTeamMetricEvaluator`, `SingleMatchIndividualMetricEvaluator`). Added a `group` column to prevent same-theme repetition (e.g., `total_kills`, `team_kills_match`, `player_kills_match` are all in the `kills` group). Introduced group-aware assignment logic with three-tier fallback. Rebalanced weights across the expanded catalog. No new evaluators were created.
+
+### 10.2 Challenge Catalog (27 entries)
+
+**Existing (8)** — updated with groups:
+
+| Code | Group | Weight | Type |
+|---|---|---|---|
+| `total_kills` | kills | 15 | accumulative |
+| `total_denies` | denies | 10 | accumulative |
+| `total_heal` | healing | 8 | accumulative |
+| `hero_win` | hero_win | 15 | accumulative |
+| `item_win` | item_win | 10 | accumulative |
+| `last_hits` | last_hits | 8 | snapshot |
+| `zero_death_win` | survival | 2 | snapshot |
+| `fast_win` | speed | 5 | snapshot |
+
+**New Accumulative Team (5)** — `AccumulativeTeamMetricEvaluator`:
+
+| Code | Metric | Group | Weight | Base→Max |
+|---|---|---|---|---|
+| `total_assists` | assists | assists | 15 | 40→70 |
+| `total_hero_damage` | hero_damage | hero_damage | 10 | 80000→125000 |
+| `total_tower_damage` | tower_damage | tower_damage | 8 | 15000→24000 |
+| `total_last_hits` | last_hits | last_hits | 12 | 300→450 |
+| `total_net_worth` | net_worth | economy | 8 | 60000→90000 |
+
+**New Single Match Team (6)** — `SingleMatchTeamMetricEvaluator`, all snapshot:
+
+| Code | Metric | Group | Weight | Base |
+|---|---|---|---|---|
+| `team_assists_match` | assists | assists | 15 | 35 |
+| `team_kills_match` | kills | kills | 15 | 30 |
+| `team_last_hits_match` | last_hits | last_hits | 12 | 250 |
+| `team_denies_match` | denies | denies | 8 | 15 |
+| `team_hero_damage_match` | hero_damage | hero_damage | 10 | 70000 |
+| `team_tower_damage_match` | tower_damage | tower_damage | 8 | 12000 |
+
+**New Single Match Individual (8)** — `SingleMatchIndividualMetricEvaluator`, all snapshot:
+
+| Code | Metric | Group | Weight | Base |
+|---|---|---|---|---|
+| `player_kills_match` | kills | kills | 15 | 12 |
+| `player_assists_match` | assists | assists | 15 | 15 |
+| `player_last_hits_match` | last_hits | last_hits | 12 | 80 |
+| `player_hero_damage_match` | hero_damage | hero_damage | 10 | 25000 |
+| `player_tower_damage_match` | tower_damage | tower_damage | 8 | 6000 |
+| `player_net_worth_match` | net_worth | economy | 8 | 18000 |
+| `player_gpm_match` | gold_per_min | economy | 3 | 500 |
+| `player_xpm_match` | xp_per_min | economy | 3 | 600 |
+
+### 10.3 Grouping Design
+
+Added a `group` column (nullable string, indexed) to the `challenges` table. All 27 entries have group assignments across 12 unique groups:
+
+| Group | Challenges |
+|---|---|
+| `kills` | total_kills, team_kills_match, player_kills_match |
+| `assists` | total_assists, team_assists_match, player_assists_match |
+| `last_hits` | last_hits, total_last_hits, team_last_hits_match, player_last_hits_match |
+| `denies` | total_denies, team_denies_match |
+| `hero_damage` | total_hero_damage, team_hero_damage_match, player_hero_damage_match |
+| `tower_damage` | total_tower_damage, team_tower_damage_match, player_tower_damage_match |
+| `economy` | total_net_worth, player_net_worth_match, player_gpm_match, player_xpm_match |
+| `hero_win` | hero_win |
+| `item_win` | item_win |
+| `healing` | total_heal |
+| `survival` | zero_death_win |
+| `speed` | fast_win |
+
+### 10.4 Assignment Logic Changes
+
+Three-tier fallback in `selectChallenge()`:
+
+1. **Tier 1**: Exclude cooldown IDs + active codes + **active groups**
+2. **Tier 2** (cooldown exhausted): Exclude active codes + active groups
+3. **Tier 3** (groups exhausted): Exclude active codes only — drop group constraint
+
+Group exclusion is gathered from active `DestinationChallenge` records joined with `challenges.group` (non-null values only). This prevents scenarios like Monday=total_kills, Tuesday=team_kills_match (both kills group).
+
+### 10.5 Weight Balancing Rationale
+
+| Tier | Weight | Groups | Rationale |
+|---|---|---|---|
+| Common | 15 | kills, assists, hero_win | Core gameplay, always relevant |
+| Medium-High | 12 | last_hits | Frequent farming metric |
+| Medium | 10 | denies, item_win, hero_damage | Common but situational |
+| Medium-Low | 8 | healing, tower_damage, economy, net_worth | Normal frequency |
+| Low | 5 | speed | Situational |
+| Rare | 2-3 | survival, extreme GPM/XPM | Very hard or niche |
+
+### 10.6 Files Created
+
+- `database/migrations/2026_06_06_213202_add_group_to_challenges_table.php` — Schema migration
+
+### 10.7 Files Modified
+
+- `app/Models/Challenge.php` — Added `group` to `$fillable`
+- `app/Support/DailyChallenge/ChallengeCatalog.php` — 27 entries with groups, expanded PHPDoc
+- `config/dota.php` — 19 new evaluator mappings
+- `app/Services/DailyChallenge/ChallengeAssignmentService.php` — Three-tier group-aware selection
+- `app/Services/DailyChallenge/ChallengeDescriptionService.php` — 19 new description templates (Bahasa Indonesia)
+- `database/factories/ChallengeFactory.php` — Added `group` to default state
+- `tests/Feature/ChallengeCatalogTest.php` — 8 new tests (group validation, count, weight consistency)
+- `tests/Feature/AssignDailyChallengesCommandTest.php` — 5 new group exclusion tests
+- `tests/Feature/ChallengeEvaluatorE2ETest.php` — 9 new E2E tests (accumulative, team, individual, GPM/XPM)
+- `tests/Feature/ChallengeSeederTest.php` — Updated counts (8→27)
+
+### 10.8 Test Summary
+
+- **New tests**: 22 (8 catalog + 5 assignment + 9 E2E)
+- **Modified tests**: 4 existing (seeder count update)
+- **Total challenge test suite**: 208 tests, 1479 assertions — **ALL PASS**
+
+### 10.9 Design Decisions
+
+1. **No new evaluators** — All 19 new challenges reuse existing generic evaluators
+2. **Three-tier fallback** — Group exclusion is a strong preference, not an absolute block
+3. **`group` is nullable at DB level** — All catalog entries have groups, but schema supports null for flexibility
+4. **GPM/XPM are snapshot-only** — Rates don't accumulate sensibly across matches
+5. **Thresholds tuned for Turbo** — All base requirements are achievable in 1-3 Turbo matches (~20-25 min)
+6. **Bahasa Indonesia descriptions** — All 19 new codes have explicit templates, not relying on English fallback

@@ -15,7 +15,7 @@ test('seeder creates missing challenges from catalog', function () {
 
     artisan('db:seed', ['--class' => 'ChallengeSeeder'])->assertSuccessful();
 
-    expect(Challenge::count())->toBe(8);
+    expect(Challenge::count())->toBe(27);
 });
 
 // --- Updates Existing Challenges ---
@@ -57,7 +57,7 @@ test('seeder is idempotent', function () {
     $countAfterSecond = Challenge::count();
 
     expect($countAfterSecond)->toBe($countAfterFirst);
-    expect($countAfterSecond)->toBe(8);
+    expect($countAfterSecond)->toBe(27);
 });
 
 // --- Does Not Delete ---
@@ -81,6 +81,6 @@ test('seeder does not delete extra rows', function () {
 
     // Extra challenge should still exist
     expect(Challenge::where('code', 'extra_challenge')->exists())->toBeTrue();
-    // Total should be 9 (8 from catalog + 1 extra)
-    expect(Challenge::count())->toBe(9);
+    // Total should be 28 (27 from catalog + 1 extra)
+    expect(Challenge::count())->toBe(28);
 });

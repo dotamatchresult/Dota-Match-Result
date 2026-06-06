@@ -30,6 +30,28 @@ class ChallengeDescriptionService
             'last_hits' => "Dapatkan {$requirement} last hit dalam satu pertandingan",
             'zero_death_win' => 'Menangkan pertandingan tanpa mati',
             'fast_win' => "Menangkan pertandingan dalam waktu kurang dari {$requirement} menit",
+            // Accumulative Team (new)
+            'total_assists' => "Dapatkan {$requirement} total assist",
+            'total_hero_damage' => 'Berikan '.number_format($requirement, 0, ',', '.').' total hero damage',
+            'total_tower_damage' => 'Berikan '.number_format($requirement, 0, ',', '.').' total tower damage',
+            'total_last_hits' => "Dapatkan {$requirement} total last hit",
+            'total_net_worth' => 'Kumpulkan '.number_format($requirement, 0, ',', '.').' total net worth',
+            // Single Match Team (new)
+            'team_assists_match' => "Dapatkan {$requirement} total assist tim dalam satu pertandingan",
+            'team_kills_match' => "Dapatkan {$requirement} total kill tim dalam satu pertandingan",
+            'team_last_hits_match' => "Dapatkan {$requirement} total last hit tim dalam satu pertandingan",
+            'team_denies_match' => "Dapatkan {$requirement} total deny tim dalam satu pertandingan",
+            'team_hero_damage_match' => 'Berikan '.number_format($requirement, 0, ',', '.').' total hero damage tim dalam satu pertandingan',
+            'team_tower_damage_match' => 'Berikan '.number_format($requirement, 0, ',', '.').' total tower damage tim dalam satu pertandingan',
+            // Single Match Individual (new)
+            'player_kills_match' => "Seorang pemain mencapai {$requirement} kill dalam satu pertandingan",
+            'player_assists_match' => "Seorang pemain mencapai {$requirement} assist dalam satu pertandingan",
+            'player_last_hits_match' => "Seorang pemain mencapai {$requirement} last hit dalam satu pertandingan",
+            'player_hero_damage_match' => 'Seorang pemain mencapai '.number_format($requirement, 0, ',', '.').' hero damage dalam satu pertandingan',
+            'player_tower_damage_match' => 'Seorang pemain mencapai '.number_format($requirement, 0, ',', '.').' tower damage dalam satu pertandingan',
+            'player_net_worth_match' => 'Seorang pemain mencapai '.number_format($requirement, 0, ',', '.').' net worth dalam satu pertandingan',
+            'player_gpm_match' => "Seorang pemain mencapai {$requirement} GPM dalam satu pertandingan",
+            'player_xpm_match' => "Seorang pemain mencapai {$requirement} XPM dalam satu pertandingan",
             default => $this->describeFallback($challenge->description, $requirement),
         };
     }

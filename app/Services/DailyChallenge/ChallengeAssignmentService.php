@@ -212,9 +212,13 @@ class ChallengeAssignmentService
     /**
      * Select an appropriate challenge for the destination.
      *
-     * Uses weighted random selection. Prefers challenges not assigned within
-     * the cooldown period. Excludes challenge codes already active on the
-     * destination. Falls back to any active challenge if the pool is exhausted.
+     * Uses weighted random selection with three-tier fallback:
+     *   1. Prefer challenges outside cooldown, with different code AND group
+     *   2. Fallback: drop cooldown, still enforce code AND group exclusion
+     *   3. Final fallback: enforce code exclusion only (drop group constraint)
+     *
+     * Group exclusion prevents assigning challenges that feel nearly identical
+     * (e.g. total_kills and team_kills_match both have group="kills").
      */
     private function selectChallenge(Destination $destination): ?Challenge
     {
@@ -241,22 +245,51 @@ class ChallengeAssignmentService
             ->unique()
             ->toArray();
 
-        // --- Rule 3: Prefer challenges not recently assigned ---
+        // Gather non-null groups from active challenges to prevent same-theme repetition
+        $activeGroups = DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->where('status', 'active')
+            ->join('challenges', 'destination_challenges.challenge_id', '=', 'challenges.id')
+            ->whereNotNull('challenges.group')
+            ->pluck('challenges.group')
+            ->unique()
+            ->toArray();
+
+        // --- Tier 1: Prefer challenges outside cooldown, different code, different group ---
         $candidates = Challenge::query()
             ->active()
             ->when(! empty($recentChallengeIds), fn ($q) => $q->whereNotIn('id', $recentChallengeIds))
             ->when(! empty($activeCodes), fn ($q) => $q->whereNotIn('code', $activeCodes))
+            ->when(! empty($activeGroups), fn ($q) => $q->whereNotIn('group', $activeGroups))
             ->get();
 
         $candidate = $this->selectWeightedRandom($candidates);
 
-        // --- Rule 4: Fallback to any active challenge if pool exhausted ---
+        // --- Tier 2: Drop cooldown, still enforce code + group exclusion ---
         if (! $candidate) {
             Log::info('Daily challenge assignment: cooldown pool exhausted, using fallback', [
                 'destination_id' => $destination->id,
                 'destination_code' => $destination->code,
                 'recently_assigned_count' => count($recentChallengeIds),
                 'active_codes_excluded' => $activeCodes,
+                'active_groups_excluded' => $activeGroups,
+            ]);
+
+            $candidates = Challenge::query()
+                ->active()
+                ->when(! empty($activeCodes), fn ($q) => $q->whereNotIn('code', $activeCodes))
+                ->when(! empty($activeGroups), fn ($q) => $q->whereNotIn('group', $activeGroups))
+                ->get();
+
+            $candidate = $this->selectWeightedRandom($candidates);
+        }
+
+        // --- Tier 3: Final fallback — code exclusion only, drop group constraint ---
+        if (! $candidate && ! empty($activeGroups)) {
+            Log::info('Daily challenge assignment: group pool exhausted, using code-only fallback', [
+                'destination_id' => $destination->id,
+                'destination_code' => $destination->code,
+                'active_groups_excluded' => $activeGroups,
             ]);
 
             $candidates = Challenge::query()
