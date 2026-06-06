@@ -298,3 +298,162 @@ test('item_win challenge randomizes an item with cost >= 4000 at assignment', fu
         ->payload->item_id->toBe($item->item_id)
         ->payload->item_name->toBe('Refresher Orb');
 });
+
+// --- Weighted Selection ---
+
+test('weighted selection favors higher-weight challenges', function () {
+    // Clear seeded challenges and create two with very different weights
+    Challenge::query()->delete();
+
+    $highWeight = Challenge::create([
+        'code' => 'high_weight',
+        'name' => 'High Weight',
+        'description' => 'High weight challenge',
+        'category' => 'accumulative',
+        'weight' => 100,
+        'base_requirement' => 10,
+        'increment_value' => 5,
+        'max_requirement' => 50,
+        'configuration' => null,
+        'is_active' => true,
+    ]);
+
+    $lowWeight = Challenge::create([
+        'code' => 'low_weight',
+        'name' => 'Low Weight',
+        'description' => 'Low weight challenge',
+        'category' => 'accumulative',
+        'weight' => 1,
+        'base_requirement' => 10,
+        'increment_value' => 5,
+        'max_requirement' => 50,
+        'configuration' => null,
+        'is_active' => true,
+    ]);
+
+    $destination = Destination::factory()->create();
+
+    $highWeightCount = 0;
+    $iterations = 20;
+
+    for ($i = 0; $i < $iterations; $i++) {
+        // Clean up today's assignment
+        DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->delete();
+
+        ChallengeEvent::query()->delete();
+        ChallengeNotification::query()->delete();
+
+        artisan('challenges:assign-daily')->assertSuccessful();
+
+        $dc = DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->first();
+
+        expect($dc)->not->toBeNull();
+
+        if ($dc->challenge_id === $highWeight->id) {
+            $highWeightCount++;
+        }
+    }
+
+    // With weight 100 vs 1, high-weight should be selected most of the time
+    expect($highWeightCount)->toBeGreaterThan($iterations / 2);
+});
+
+// --- Active Code Exclusion ---
+
+test('active challenge codes are excluded from new assignment', function () {
+    $destination = Destination::factory()->create();
+
+    // Get a challenge to make active
+    $activeChallenge = Challenge::query()->active()->first();
+
+    // Create an active DestinationChallenge for the same code
+    DestinationChallenge::factory()->create([
+        'destination_id' => $destination->id,
+        'challenge_id' => $activeChallenge->id,
+        'status' => 'active',
+        'assigned_date' => today()->subDay()->toDateString(),
+    ]);
+
+    // Run assignment multiple times to verify code is never re-assigned
+    for ($i = 0; $i < 10; $i++) {
+        DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->delete();
+
+        ChallengeEvent::query()->whereNotNull('id')->delete();
+        ChallengeNotification::query()->whereNotNull('id')->delete();
+
+        artisan('challenges:assign-daily')->assertSuccessful();
+
+        $dc = DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->whereDate('assigned_date', today())
+            ->first();
+
+        if ($dc) {
+            $assignedChallenge = Challenge::find($dc->challenge_id);
+
+            expect($assignedChallenge->code)->not->toBe($activeChallenge->code);
+        }
+    }
+});
+
+// --- Hero Exclusion (Meepo) ---
+
+test('hero_win assignment excludes Meepo from random hero pool', function () {
+    // Ensure heroes table has data
+    \App\Models\Hero::create([
+        'hero_id' => 82,
+        'name' => 'npc_dota_hero_meepo',
+        'localized_name' => 'Meepo',
+    ]);
+
+    \App\Models\Hero::create([
+        'hero_id' => 1,
+        'name' => 'npc_dota_hero_antimage',
+        'localized_name' => 'Anti-Mage',
+    ]);
+
+    \App\Models\Hero::create([
+        'hero_id' => 2,
+        'name' => 'npc_dota_hero_axe',
+        'localized_name' => 'Axe',
+    ]);
+
+    // Deactivate all challenges except hero_win
+    Challenge::query()->update(['is_active' => false]);
+    Challenge::query()->where('code', 'hero_win')->update(['is_active' => true]);
+
+    $destination = Destination::factory()->create();
+
+    // Run multiple assignments and verify hero_id is never 82
+    for ($i = 0; $i < 20; $i++) {
+        DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->where('status', 'active')
+            ->delete();
+
+        ChallengeEvent::query()->delete();
+        ChallengeNotification::query()->delete();
+
+        artisan('challenges:assign-daily')->assertSuccessful();
+
+        $dc = DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->where('status', 'active')
+            ->first();
+
+        if ($dc && isset($dc->progress_data['metadata']['hero_id'])) {
+            $heroId = $dc->progress_data['metadata']['hero_id'];
+
+            expect($heroId)->not->toBe(82);
+        }
+    }
+});

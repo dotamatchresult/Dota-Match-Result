@@ -19,3 +19,27 @@ Berikut adalah ide atau penyesuaian yang dapat dilakukan setelah implementasi aw
 
 - Meepo is excluded from the randomized pool.
 - For this condition, let's add one unique challenge of "Win a game with Meepo" but upon challenge unfinished we don't increment the challenge. So `base_requirement`: 1 win, `increment_value`: +0 win, `max_requirement`: 1 win.
+
+---
+
+### 3. Should challenges have difficulty tiers?
+
+Example:
+
+```
+easy
+medium
+hard
+```
+
+Then assignment could later evolve into:
+
+```
+Monday-Thursday → easy/medium
+Friday-Sunday → medium/hard
+```
+
+Not needed immediately, but much easier to add now.
+
+My recommendation is `YES`. Store it in the catalog.
+

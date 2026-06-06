@@ -176,7 +176,12 @@ class ChallengeAssignmentService
         }
 
         if ($challenge->code === 'hero_win') {
-            $hero = Hero::query()->inRandomOrder()->first();
+            $excludedHeroes = $challenge->configuration['excluded_heroes'] ?? [];
+
+            $hero = Hero::query()
+                ->when(! empty($excludedHeroes), fn ($q) => $q->whereNotIn('hero_id', $excludedHeroes))
+                ->inRandomOrder()
+                ->first();
 
             if ($hero) {
                 $progressData = ['metadata' => ['hero_id' => $hero->hero_id]];
@@ -187,10 +192,12 @@ class ChallengeAssignmentService
                     'challenge_code' => $challenge->code,
                     'hero_id' => $hero->hero_id,
                     'hero_name' => $hero->localized_name ?? $hero->name,
+                    'excluded_heroes' => $excludedHeroes,
                 ]);
             } else {
                 Log::warning('Daily challenge: no heroes found for hero_win', [
                     'challenge_code' => $challenge->code,
+                    'excluded_heroes' => $excludedHeroes,
                 ]);
             }
         }
@@ -205,8 +212,9 @@ class ChallengeAssignmentService
     /**
      * Select an appropriate challenge for the destination.
      *
-     * Prefers challenges not assigned within the cooldown period.
-     * Falls back to any active challenge if the pool is exhausted.
+     * Uses weighted random selection. Prefers challenges not assigned within
+     * the cooldown period. Excludes challenge codes already active on the
+     * destination. Falls back to any active challenge if the pool is exhausted.
      */
     private function selectChallenge(Destination $destination): ?Challenge
     {
@@ -224,12 +232,23 @@ class ChallengeAssignmentService
             ->unique()
             ->toArray();
 
+        // Gather challenge codes that are already active on this destination
+        $activeCodes = DestinationChallenge::query()
+            ->where('destination_id', $destination->id)
+            ->where('status', 'active')
+            ->join('challenges', 'destination_challenges.challenge_id', '=', 'challenges.id')
+            ->pluck('challenges.code')
+            ->unique()
+            ->toArray();
+
         // --- Rule 3: Prefer challenges not recently assigned ---
-        $candidate = Challenge::query()
+        $candidates = Challenge::query()
             ->active()
             ->when(! empty($recentChallengeIds), fn ($q) => $q->whereNotIn('id', $recentChallengeIds))
-            ->inRandomOrder()
-            ->first();
+            ->when(! empty($activeCodes), fn ($q) => $q->whereNotIn('code', $activeCodes))
+            ->get();
+
+        $candidate = $this->selectWeightedRandom($candidates);
 
         // --- Rule 4: Fallback to any active challenge if pool exhausted ---
         if (! $candidate) {
@@ -237,15 +256,51 @@ class ChallengeAssignmentService
                 'destination_id' => $destination->id,
                 'destination_code' => $destination->code,
                 'recently_assigned_count' => count($recentChallengeIds),
+                'active_codes_excluded' => $activeCodes,
             ]);
 
-            $candidate = Challenge::query()
+            $candidates = Challenge::query()
                 ->active()
-                ->inRandomOrder()
-                ->first();
+                ->when(! empty($activeCodes), fn ($q) => $q->whereNotIn('code', $activeCodes))
+                ->get();
+
+            $candidate = $this->selectWeightedRandom($candidates);
         }
 
         return $candidate;
+    }
+
+    /**
+     * Select a challenge using weighted random selection.
+     *
+     * Higher weight = higher selection probability.
+     *
+     * @param  \Illuminate\Support\Collection<int, Challenge>  $candidates
+     */
+    private function selectWeightedRandom($candidates): ?Challenge
+    {
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        $totalWeight = $candidates->sum('weight');
+
+        if ($totalWeight <= 0) {
+            return $candidates->random();
+        }
+
+        $random = mt_rand() / mt_getrandmax() * $totalWeight;
+        $cumulative = 0.0;
+
+        foreach ($candidates as $candidate) {
+            $cumulative += (float) $candidate->weight;
+
+            if ($random <= $cumulative) {
+                return $candidate;
+            }
+        }
+
+        return $candidates->last();
     }
 
     /**

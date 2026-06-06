@@ -19,6 +19,7 @@ class Challenge extends Model
         'base_requirement',
         'increment_value',
         'max_requirement',
+        'weight',
         'configuration',
         'is_active',
     ];
@@ -31,6 +32,7 @@ class Challenge extends Model
             'base_requirement' => 'integer',
             'increment_value' => 'integer',
             'max_requirement' => 'integer',
+            'weight' => 'integer',
         ];
     }
 

@@ -13,12 +13,13 @@ Table: `challenges`
 | `base_requirement` | unsigned integer | Starting threshold |
 | `increment_value` | unsigned integer | Growth on failure (default 0; always 0 for snapshots) |
 | `max_requirement` | unsigned integer | Cap to prevent runaway targets |
+| `weight` | unsigned integer | Selection weight for random assignment (default 10) |
 | `configuration` | json (nullable) | Type-specific config (e.g. `{"item_id": 116}` for item_win) |
 | `is_active` | boolean | Soft-disable from pool (default true) |
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
 
-Indexes: unique(`code`), composite(`is_active`, `category`)
+Indexes: unique(`code`), composite(`is_active`, `category`), single(`weight`)
 
 ### **1.2 Create `destination_challenges` table**
 
@@ -120,7 +121,7 @@ class Challenge extends Model
     protected $fillable = [
         'code', 'name', 'description', 'category',
         'base_requirement', 'increment_value', 'max_requirement',
-        'configuration', 'is_active',
+        'weight', 'configuration', 'is_active',
     ];
 
     protected function casts(): array
@@ -131,6 +132,7 @@ class Challenge extends Model
             'base_requirement' => 'integer',
             'increment_value' => 'integer',
             'max_requirement' => 'integer',
+            'weight' => 'integer',
         ];
     }
 
@@ -328,9 +330,10 @@ Schedule::command('challenges:assign-daily')
 - **Daily idempotency**: Checks `(destination_id, assigned_date)` before assignment — never double-assigns
 - **14-day cooldown**: Prefers challenges not assigned to the destination in the last `assignment_history_days` days
 - **Pool exhaustion fallback**: If all active challenges are within cooldown, falls back to any active challenge
-- **Random selection**: Uses `inRandomOrder()` among eligible candidates
+- **Weighted random selection**: Uses `selectWeightedRandom()` — higher-weight challenges are assigned more frequently (added in Step 7)
+- **Active code exclusion**: Challenges with the same `code` already active on the destination are excluded from the candidate pool (added in Step 7)
 - **Item win randomization**: For `item_win` challenges, picks a random item with cost ≥ 4000 from the `items` table at assignment time and stores `item_id` in `DestinationChallenge.progress_data.metadata`
-- **Hero win randomization**: For `hero_win` challenges, picks a random hero from the `heroes` table at assignment time and stores `hero_id` in `DestinationChallenge.progress_data.metadata` (added during Step 5 — needed for description rendering)
+- **Hero win randomization**: For `hero_win` challenges, picks a random hero from the `heroes` table at assignment time, respecting `configuration.excluded_heroes` from the catalog (e.g., excludes Meepo, hero_id 82) — stores `hero_id` in `DestinationChallenge.progress_data.metadata` (added during Step 5; hero restrictions added in Step 7)
 - **DB transaction**: Creates `DestinationChallenge` + `ChallengeEvent` (type: `assigned`) + `ChallengeNotification` (type: `assigned_announcement`) atomically
 - **Chunked iteration**: Processes destinations in chunks of 100 via `chunkById()`
 - **Structured logging**: Logs all outcomes (assigned, skipped-idempotency, skipped-limit, skipped-no-challenge, errors)
@@ -807,10 +810,113 @@ One `ChallengeEvent(type='review_forced')` per active challenge when force thres
 
 ---
 
-# **Step 7: Seeder for Challenge Pool**
+# **Step 7: Challenge Catalog System** ✅ Implemented
 
-* Seed initial challenges to DB
-* Optional: maintain a static PHP array if you prefer immutable pool
+### **7.1 Challenge Catalog**
+
+Move challenge definitions from inline seeder to a canonical PHP catalog.
+
+**Files created:**
+- `app/Support/DailyChallenge/ChallengeCatalog.php` — Canonical source of truth for all challenge templates
+- `app/Support/DailyChallenge/ChallengeCatalogValidator.php` — Validates every catalog entry before use
+- `docs/challenge-authoring.md` — Authoring guide: allowed/forbidden metrics, design rules
+- `database/migrations/..._add_weight_to_challenges_table.php` — Adds `weight` column
+
+**Files modified:**
+- `app/Models/Challenge.php` — Added `weight` to `$fillable` and `casts()`
+- `database/factories/ChallengeFactory.php` — Added `weight` to default state
+- `database/seeders/ChallengeSeeder.php` — Refactored to source from `ChallengeCatalog::definitions()` via `updateOrCreate()`
+- `app/Services/DailyChallenge/ChallengeAssignmentService.php` — Weighted selection, active code exclusion, hero restrictions
+
+### **7.2 Challenge Weight**
+
+**Migration**: `challenges.weight` — unsigned integer, default 10, indexed.
+
+Used by `selectWeightedRandom()` to bias assignment toward higher-weight challenges.
+
+**Suggested weights:**
+| Code | Weight | Rationale |
+|---|---|---|
+| `hero_win` | 15 | Core gameplay, always relevant |
+| `total_kills` | 15 | Core gameplay, always relevant |
+| `item_win` | 10 | Common |
+| `total_denies` | 10 | Common |
+| `total_heal` | 8 | Normal |
+| `last_hits` | 8 | Normal |
+| `fast_win` | 5 | Situational |
+| `zero_death_win` | 2 | Very hard to achieve |
+
+### **7.3 Challenge Catalog**
+
+**`ChallengeCatalog::definitions()`** returns all 8 challenge definitions with weights, categories, and type-specific `configuration`.
+
+The catalog is the canonical source of truth. The database is only a synchronized runtime representation. The seeder uses `updateOrCreate()` by `code` for idempotency — safe to run multiple times, updates existing records, creates missing records, and does NOT delete extra rows.
+
+**`hero_win` configuration:**
+```php
+'configuration' => [
+    'random_hero' => true,
+    'excluded_heroes' => [
+        82, // Meepo
+    ],
+],
+```
+
+### **7.4 Catalog Validator**
+
+**`ChallengeCatalogValidator::validate(array $definitions)`** — called automatically by `definitions()` before returning.
+
+**Validation rules:**
+- Required keys: `code`, `name`, `description`, `weight`, `base_requirement`, `increment_value`, `max_requirement`
+- `weight >= 1`
+- `base_requirement <= max_requirement`
+- `code` must be unique across all entries
+
+Throws `InvalidArgumentException` with descriptive message on failure.
+
+### **7.5 Assignment Engine Improvements**
+
+**Weighted random selection** (`selectWeightedRandom()`):
+- Sums all candidate weights, picks a random float in `[0, totalWeight)`, iterates accumulating weight until threshold exceeded
+- Uses `mt_rand()` for deterministic testability
+- Applied to both cooldown-preference and fallback query paths
+
+**Active code exclusion:**
+- Gathers distinct `code` values from `DestinationChallenge` where `status='active'` for the destination
+- Excludes them via `whereNotIn('code', ...)` in both candidate queries
+- If no candidates remain after exclusion, returns null (skips assignment)
+
+**Hero restrictions via catalog:**
+- In `resolveRuntimeConfig()`, reads `configuration.excluded_heroes` from the challenge
+- Filters Hero query with `whereNotIn('hero_id', $excludedHeroes)`
+- Only Meepo (82) is excluded per current catalog configuration
+
+### **7.6 Documentation**
+
+**`docs/challenge-authoring.md`** documents:
+- **Allowed metrics**: kills, assists, deaths, wins, hero_id, item_id, last_hits, denies, hero_healing, duration
+- **Forbidden metrics**: roshan, wards, sentries, courier kills, damage types, skill usage, item activations, stun duration, silence duration
+- **Design rules**: Turbo compatible, achievable in 1–3 matches, no griefing/feeding/AFK incentives
+- Weight guidelines by frequency tier
+
+### **7.7 Tests**
+
+`tests/Feature/ChallengeCatalogTest.php` — 11 tests, 149 assertions:
+- All 8 codes present, required keys, valid weights, valid requirements
+- `hero_win` has `excluded_heroes` in configuration, catalog uses suggested weights
+- Validator passes valid definitions, rejects: missing keys, weight < 1, base > max, duplicate codes
+
+`tests/Feature/ChallengeSeederTest.php` — 4 tests, 15 assertions:
+- Creates missing challenges (0 → 8)
+- Updates existing challenges (old data → catalog values)
+- Idempotent (run twice, same count)
+- Does not delete extra rows (8 catalog + 1 extra = 9)
+
+`tests/Feature/AssignDailyChallengesCommandTest.php` — 12 tests (3 new), 156 assertions:
+- Weighted selection favors higher-weight challenges (100 vs 1)
+- Active code exclusion prevents re-assignment of same code
+- Hero exclusion: hero_win never assigns Meepo (hero_id 82)
+- All existing tests (assignment, max limit, idempotency, cooldown, fallback, disabled, no-active, multi-dest, item-win) still pass
 
 ---
 

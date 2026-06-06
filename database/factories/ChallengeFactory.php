@@ -42,6 +42,7 @@ class ChallengeFactory extends Factory
             'max_requirement' => $isSnapshot ? fake()->numberBetween(5, 50) : fake()->numberBetween(60, 200),
             'configuration' => null,
             'is_active' => true,
+            'weight' => fake()->numberBetween(1, 20),
         ];
     }
 }
