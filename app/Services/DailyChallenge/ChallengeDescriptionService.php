@@ -24,34 +24,37 @@ class ChallengeDescriptionService
         return match ($challenge->code) {
             'hero_win' => $this->describeHeroWin($requirement, $metadata, $configuration),
             'item_win' => $this->describeItemWin($requirement, $metadata, $configuration),
-            'total_kills' => "Dapatkan {$requirement} total kill",
-            'total_denies' => "Dapatkan {$requirement} total deny",
+            'total_kills' => "Dapatkan total {$requirement} kill",
+            'total_denies' => "Dapatkan total {$requirement} deny",
             'total_heal' => 'Pulihkan '.number_format($requirement, 0, ',', '.').' HP',
-            'last_hits' => "Dapatkan {$requirement} last hit dalam satu pertandingan",
-            'zero_death_win' => 'Menangkan pertandingan tanpa mati',
-            'fast_win' => "Menangkan pertandingan dalam waktu kurang dari {$requirement} menit",
+            'last_hits' => "Dapatkan {$requirement} last hit dalam satu match",
+            'zero_death_win' => 'Menangkan match, salah satu player harus 0 death',
+            'fast_win' => "Menangkan match dalam waktu kurang dari {$requirement} menit",
+
             // Accumulative Team (new)
-            'total_assists' => "Dapatkan {$requirement} total assist",
-            'total_hero_damage' => 'Berikan '.number_format($requirement, 0, ',', '.').' total hero damage',
-            'total_tower_damage' => 'Berikan '.number_format($requirement, 0, ',', '.').' total tower damage',
-            'total_last_hits' => "Dapatkan {$requirement} total last hit",
-            'total_net_worth' => 'Kumpulkan '.number_format($requirement, 0, ',', '.').' total net worth',
+            'total_assists' => "Dapatkan total {$requirement} assist",
+            'total_hero_damage' => 'Berikan total '.number_format($requirement, 0, ',', '.').' hero damage',
+            'total_tower_damage' => 'Berikan total '.number_format($requirement, 0, ',', '.').' tower damage',
+            'total_last_hits' => "Dapatkan total {$requirement} last hit",
+            'total_net_worth' => 'Kumpulkan total '.number_format($requirement, 0, ',', '.').' net worth',
+
             // Single Match Team (new)
-            'team_assists_match' => "Dapatkan {$requirement} total assist tim dalam satu pertandingan",
-            'team_kills_match' => "Dapatkan {$requirement} total kill tim dalam satu pertandingan",
-            'team_last_hits_match' => "Dapatkan {$requirement} total last hit tim dalam satu pertandingan",
-            'team_denies_match' => "Dapatkan {$requirement} total deny tim dalam satu pertandingan",
-            'team_hero_damage_match' => 'Berikan '.number_format($requirement, 0, ',', '.').' total hero damage tim dalam satu pertandingan',
-            'team_tower_damage_match' => 'Berikan '.number_format($requirement, 0, ',', '.').' total tower damage tim dalam satu pertandingan',
+            'team_assists_match' => "Dapatkan total {$requirement} assist tim dalam satu match",
+            'team_kills_match' => "Dapatkan total {$requirement} kill tim dalam satu match",
+            'team_last_hits_match' => "Dapatkan total {$requirement} last hit tim dalam satu match",
+            'team_denies_match' => "Dapatkan total {$requirement} deny tim dalam satu match",
+            'team_hero_damage_match' => 'Berikan total '.number_format($requirement, 0, ',', '.').' hero damage tim dalam satu match',
+            'team_tower_damage_match' => 'Berikan total '.number_format($requirement, 0, ',', '.').' tower damage tim dalam satu match',
+
             // Single Match Individual (new)
-            'player_kills_match' => "Seorang pemain mencapai {$requirement} kill dalam satu pertandingan",
-            'player_assists_match' => "Seorang pemain mencapai {$requirement} assist dalam satu pertandingan",
-            'player_last_hits_match' => "Seorang pemain mencapai {$requirement} last hit dalam satu pertandingan",
-            'player_hero_damage_match' => 'Seorang pemain mencapai '.number_format($requirement, 0, ',', '.').' hero damage dalam satu pertandingan',
-            'player_tower_damage_match' => 'Seorang pemain mencapai '.number_format($requirement, 0, ',', '.').' tower damage dalam satu pertandingan',
-            'player_net_worth_match' => 'Seorang pemain mencapai '.number_format($requirement, 0, ',', '.').' net worth dalam satu pertandingan',
-            'player_gpm_match' => "Seorang pemain mencapai {$requirement} GPM dalam satu pertandingan",
-            'player_xpm_match' => "Seorang pemain mencapai {$requirement} XPM dalam satu pertandingan",
+            'player_kills_match' => "Satu player mencapai {$requirement} kill dalam satu match",
+            'player_assists_match' => "Satu player mencapai {$requirement} assist dalam satu match",
+            'player_last_hits_match' => "Satu player mencapai {$requirement} last hit dalam satu match",
+            'player_hero_damage_match' => 'Satu player mencapai '.number_format($requirement, 0, ',', '.').' hero damage dalam satu match',
+            'player_tower_damage_match' => 'Satu player mencapai '.number_format($requirement, 0, ',', '.').' tower damage dalam satu match',
+            'player_net_worth_match' => 'Satu player mencapai '.number_format($requirement, 0, ',', '.').' net worth dalam satu match',
+            'player_gpm_match' => "Satu player mencapai {$requirement} GPM dalam satu match",
+            'player_xpm_match' => "Satu player mencapai {$requirement} XPM dalam satu match",
             default => $this->describeFallback($challenge->description, $requirement),
         };
     }
@@ -66,7 +69,7 @@ class ChallengeDescriptionService
     {
         $heroName = $this->resolveHeroName($metadata, $configuration);
 
-        return "Menangkan {$requirement} pertandingan menggunakan {$heroName}";
+        return "Menangkan {$requirement} match menggunakan {$heroName}";
     }
 
     /**
@@ -79,7 +82,7 @@ class ChallengeDescriptionService
     {
         $itemName = $this->resolveItemName($metadata, $configuration);
 
-        return "Menangkan {$requirement} pertandingan dengan membawa {$itemName}";
+        return "Menangkan {$requirement} match dengan membawa {$itemName} hingga akhir";
     }
 
     /**

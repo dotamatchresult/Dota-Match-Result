@@ -465,8 +465,6 @@ Formats notification messages. Supports single notifications via `render()` and 
 
 Progress:
 {current_progress} / {current_requirement}
-
-Semoga beruntung.
 ```
 
 **`completed` (single):**

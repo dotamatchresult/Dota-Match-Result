@@ -20,7 +20,7 @@ class ChallengeMessageRenderer
             'completed' => $this->renderSingleCompleted($notification),
             'backlog_full' => $this->renderBacklogFull(),
             'recap' => $this->renderRecap($notification),
-            'review_delayed' => $this->renderReviewDelayed(),
+            'review_delayed' => '', // $this->renderReviewDelayed(),
             default => '',
         };
     }
@@ -76,8 +76,8 @@ class ChallengeMessageRenderer
         return "🎯 TANTANGAN HARIAN\n\n"
             ."{$description}\n\n"
             ."Progress:\n"
-            ."{$progress} / {$requirement}\n\n"
-            .'Semoga beruntung.';
+            ."{$progress} / {$requirement}";
+            // ."\n\nSemoga beruntung.";
     }
 
     /**
