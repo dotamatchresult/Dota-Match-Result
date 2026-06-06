@@ -90,7 +90,7 @@ Follow the step file's deliverable order, but **batch independent work**:
 After implementation is complete and tests pass:
 
 - **Update the plan file** (`DAILY_CHALLENGE_PLAN.md`): Mark the step as `✅ Implemented` with full details following the pattern of prior steps (overview, files created/modified, architecture, test summary, design decisions)
-- **Provide a planner-ready summary**: A concise bullet-point summary covering: what was done, evaluator/component mappings, key architectural decisions, files created/modified, test counts, and what's ready for the next step. This keeps the planner LLM aligned without re-reading the full plan file.
+- **Provide a planner-ready summary**: A concise bullet-point summary covering: what was done, evaluator/component mappings, key architectural decisions, files created/modified, test counts, and what's ready for the next step. This keeps the planner LLM aligned without re-reading the full plan file. Do not update other steps unless it is important to do so.
 
 ## Key Principles
 
