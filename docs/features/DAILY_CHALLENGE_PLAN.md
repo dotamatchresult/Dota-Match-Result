@@ -920,7 +920,253 @@ Throws `InvalidArgumentException` with descriptive message on failure.
 
 ---
 
-# **Step 8: Testing**
+# **Step 8: Evaluator Expansion & Metric Challenge Framework** ✅ Implemented
+
+### **8.1 Overview**
+
+Replaced 6 stub (no-op) string-based evaluator references with 5 reusable evaluator classes, a `MetricRegistry`, standardized `progress_data` structure, and catalog-driven configuration. Existing `HeroWinEvaluator` and `ItemWinEvaluator` remain untouched.
+
+The system now supports configuration-driven challenge evaluation — future challenge types can be added primarily through catalog configuration rather than custom evaluator code.
+
+### **8.2 Architecture**
+
+```
+MetricRegistry (authoritative metric list)
+    ↓ validated by
+ChallengeCatalogValidator (metric references)
+    ↓ configured via
+ChallengeCatalog (configuration.metric on each entry)
+    ↓ resolved via
+ChallengeEvaluatorRegistry → config/dota.php
+    ↓ dispatches
+ChallengeProgressService → mergeProgressData (standardized)
+```
+
+**Evaluator patterns implemented:**
+
+| Pattern | Purpose | Example |
+|---------|---------|---------|
+| `AccumulativeTeamMetricEvaluator` | Sum metric across members, accumulate across matches | `total_kills`, `total_denies`, `total_heal` |
+| `SingleMatchTeamMetricEvaluator` | Team total within a single match, tracks `best_attempt` | Available for future catalog entries |
+| `SingleMatchIndividualMetricEvaluator` | Best individual performance in a match | `last_hits` |
+| `FastWinEvaluator` | Win + duration ≤ requirement | `fast_win` |
+| `ZeroDeathWinEvaluator` | Win + 0 deaths | `zero_death_win` |
+
+### **8.3 MetricRegistry**
+
+**File:** `app/Support/DailyChallenge/MetricRegistry.php`
+
+Authoritative list of 11 available metrics sourced from unparsed OpenDota payload:
+
+`kills`, `deaths`, `assists`, `last_hits`, `denies`, `hero_healing`, `hero_damage`, `tower_damage`, `net_worth`, `gold_per_min`, `xp_per_min`
+
+```php
+MetricRegistry::all();       // returns all 11 metrics
+MetricRegistry::exists('kills'); // true
+MetricRegistry::exists('rampages'); // false
+```
+
+### **8.4 Progress Data Standardization**
+
+Updated `ChallengeProgressService::mergeProgressData()` to handle standardized structure:
+
+```php
+[
+    'contributors' => [],     // member_id => accumulated value
+    'matches' => [],          // deduplicated match IDs
+    'best_attempt' => null,   // best single-match/individual value
+    'best_member_id' => null, // member who achieved best_attempt
+    'best_match_id' => null,  // match where best_attempt was achieved
+    'metadata' => [],         // challenge-specific metadata
+]
+```
+
+**Merge rules:**
+- `contributors`: sum values for same member_id across matches
+- `matches`: deduplicate array
+- `best_attempt`: keep `max(existing, new)` — only update when new beats old
+- `best_member_id`/`best_match_id`: update only when `best_attempt` improves
+- `metadata`: shallow merge
+
+Backwards compatible with all existing stored data via `??` fallbacks.
+
+### **8.5 Generic Metric Evaluators**
+
+#### AccumulativeTeamMetricEvaluator
+
+**File:** `app/Services/ChallengeEvaluators/AccumulativeTeamMetricEvaluator.php`
+
+Sums the configured metric across all participating members for each match. Progress accumulates via `current_progress += teamTotal`. Completion when `current_progress >= requirement`.
+
+**Configuration:** `['metric' => 'kills']`
+
+**Mapped to:** `total_kills` (kills), `total_denies` (denies), `total_heal` (hero_healing)
+
+#### SingleMatchTeamMetricEvaluator
+
+**File:** `app/Services/ChallengeEvaluators/SingleMatchTeamMetricEvaluator.php`
+
+Sums metric across all members within a single match. Tracks `best_attempt`. Only reports progress when `teamTotal > previousBest`. `progressDelta = teamTotal - previousBest`.
+
+**Configuration:** `['metric' => 'last_hits']`
+
+**Not mapped to any existing challenge** — available for future catalog entries (e.g., "Get 150 total last hits as a team in one match").
+
+#### SingleMatchIndividualMetricEvaluator
+
+**File:** `app/Services/ChallengeEvaluators/SingleMatchIndividualMetricEvaluator.php`
+
+Finds the highest individual metric value among members within a single match. Tracks `best_attempt`, `best_member_id`, `best_match_id`. Only reports progress when new best beats previous.
+
+**Configuration:** `['metric' => 'last_hits']`
+
+**Mapped to:** `last_hits`
+
+### **8.6 Special Evaluators**
+
+#### FastWinEvaluator
+
+**File:** `app/Services/ChallengeEvaluators/FastWinEvaluator.php`
+
+**Rules:**
+- Any participating member's team must win the match
+- `match_data.duration / 60 <= current_requirement` (in minutes)
+- Duration exactly at requirement passes
+- Idempotency: returns `matched: false` if `current_progress >= 1`
+
+**Stores:** `metadata.duration_minutes`, `metadata.duration_seconds`
+
+**Mapped to:** `fast_win`
+
+#### ZeroDeathWinEvaluator
+
+**File:** `app/Services/ChallengeEvaluators/ZeroDeathWinEvaluator.php`
+
+**Rules:**
+- Any participating member must win the match AND have `deaths == 0`
+- Each qualifying member contributes +1
+- Same pattern as `HeroWinEvaluator`/`ItemWinEvaluator`
+
+**Mapped to:** `zero_death_win`
+
+### **8.7 Evaluator Registry Integration**
+
+Updated `config/dota.php` — all 8 evaluator codes now resolve to class references:
+
+```php
+'evaluators' => [
+    'total_kills' => \App\Services\ChallengeEvaluators\AccumulativeTeamMetricEvaluator::class,
+    'total_denies' => \App\Services\ChallengeEvaluators\AccumulativeTeamMetricEvaluator::class,
+    'total_heal' => \App\Services\ChallengeEvaluators\AccumulativeTeamMetricEvaluator::class,
+    'hero_win' => \App\Services\ChallengeEvaluators\HeroWinEvaluator::class,
+    'item_win' => \App\Services\ChallengeEvaluators\ItemWinEvaluator::class,
+    'last_hits' => \App\Services\ChallengeEvaluators\SingleMatchIndividualMetricEvaluator::class,
+    'zero_death_win' => \App\Services\ChallengeEvaluators\ZeroDeathWinEvaluator::class,
+    'fast_win' => \App\Services\ChallengeEvaluators\FastWinEvaluator::class,
+],
+```
+
+No switch statements. No changes to `ChallengeEvaluatorRegistry` — existing class-based resolution handles it.
+
+### **8.8 Challenge Catalog Expansion**
+
+Added `configuration.metric` to 4 catalog entries:
+
+| Code | Metric | Evaluator |
+|------|--------|-----------|
+| `total_kills` | `kills` | `AccumulativeTeamMetricEvaluator` |
+| `total_denies` | `denies` | `AccumulativeTeamMetricEvaluator` |
+| `total_heal` | `hero_healing` | `AccumulativeTeamMetricEvaluator` |
+| `last_hits` | `last_hits` | `SingleMatchIndividualMetricEvaluator` |
+
+Existing codes (`hero_win`, `item_win`, `zero_death_win`, `fast_win`) retain their original configuration.
+
+### **8.9 Catalog Validation**
+
+Extended `ChallengeCatalogValidator` with metric validation:
+
+- If `configuration.metric` is present, it must be a string
+- The metric value must exist in `MetricRegistry`
+- Throws `InvalidArgumentException` with descriptive message on failure
+
+Example error: `"Invalid catalog entry 'total_kills': configuration.metric 'rampages' is not a valid metric."`
+
+### **8.10 Files Summary**
+
+**Created (12):**
+- `app/Support/DailyChallenge/MetricRegistry.php` — Authoritative metric list
+- `app/Services/ChallengeEvaluators/AccumulativeTeamMetricEvaluator.php` — Team-sum accumulative evaluator
+- `app/Services/ChallengeEvaluators/SingleMatchTeamMetricEvaluator.php` — Team-sum single-match evaluator
+- `app/Services/ChallengeEvaluators/SingleMatchIndividualMetricEvaluator.php` — Individual best evaluator
+- `app/Services/ChallengeEvaluators/FastWinEvaluator.php` — Fast win evaluator
+- `app/Services/ChallengeEvaluators/ZeroDeathWinEvaluator.php` — Zero death win evaluator
+- `tests/Unit/MetricRegistryTest.php` — 3 tests, 21 assertions
+- `tests/Unit/AccumulativeTeamMetricEvaluatorTest.php` — 8 tests
+- `tests/Unit/SingleMatchTeamMetricEvaluatorTest.php` — 8 tests
+- `tests/Unit/SingleMatchIndividualMetricEvaluatorTest.php` — 8 tests
+- `tests/Unit/FastWinEvaluatorTest.php` — 8 tests
+- `tests/Unit/ZeroDeathWinEvaluatorTest.php` — 7 tests
+
+**Modified (5):**
+- `config/dota.php` — 6 string stubs replaced with class references
+- `app/Support/DailyChallenge/ChallengeCatalog.php` — Added `configuration.metric` to 4 entries
+- `app/Support/DailyChallenge/ChallengeCatalogValidator.php` — Validates `configuration.metric` against `MetricRegistry`
+- `app/Services/DailyChallenge/ChallengeProgressService.php` — `mergeProgressData` handles `best_attempt`, `best_member_id`, `best_match_id`
+- `tests/Feature/ChallengeCatalogTest.php` — 7 new tests for metric validation (total: 18 tests)
+
+**Preserved (unchanged):**
+- `HeroWinEvaluator.php`, `ItemWinEvaluator.php` — no modifications
+- `ChallengeEvaluator.php` interface, `EvaluationResult.php` DTO — no modifications
+- `ChallengeEvaluatorRegistry.php` — no modifications (already supports class resolution)
+- `ChallengeProgressService.php` (except `mergeProgressData`) — `processChallenge`, `completeChallenge` unchanged
+- `ChallengeDescriptionService.php`, `ChallengeAssignmentService.php`, `ChallengeReviewService.php` — no modifications
+
+### **8.11 No Migration Required**
+
+`progress_data` is a JSON column — new keys (`best_attempt`, `best_member_id`, `best_match_id`) are handled safely via `??` fallbacks. Existing stored data is fully backwards compatible.
+
+### **8.12 Tests**
+
+**New tests:** 56 tests, 258 assertions — **ALL PASS**
+
+**Existing evaluator tests:** 13 tests — **ALL PASS** (no regressions)
+
+`tests/Unit/MetricRegistryTest.php` — 3 tests:
+- Registry returns all 11 metrics
+- `exists()` returns true for valid, false for invalid
+
+`tests/Unit/AccumulativeTeamMetricEvaluatorTest.php` — 8 tests:
+- Sums contributors correctly, handles zero total, different metrics
+- Missing config, no members, members not in match
+- Contributors map, matches array
+
+`tests/Unit/SingleMatchTeamMetricEvaluatorTest.php` — 8 tests:
+- Team total calculation, `best_attempt` set on first match
+- `best_attempt` not updated when lower, progress delta calculation
+- Contributor storage, missing config, no members
+
+`tests/Unit/SingleMatchIndividualMetricEvaluatorTest.php` — 8 tests:
+- Highest player selected, `best_member_id`/`best_match_id` stored
+- Not updated when lower, progress delta is improvement
+- Missing config, no members
+
+`tests/Unit/FastWinEvaluatorTest.php` — 8 tests:
+- Win under requirement passes, loss fails, slow win fails
+- Duration exactly at requirement passes
+- Duration metadata stored, already completed (idempotency), no members
+
+`tests/Unit/ZeroDeathWinEvaluatorTest.php` — 7 tests:
+- Win + 0 deaths passes, win + deaths fails, loss + 0 deaths fails
+- Multiple qualifying members, contributors map, no members
+
+`tests/Feature/ChallengeCatalogTest.php` — 7 new tests:
+- Valid metric accepted, invalid metric rejected
+- Metric-based challenges have metric in configuration
+- Each metric challenge uses correct metric name
+
+---
+
+# **Step 9: Testing**
 
 1. Create test destinations and members
 2. Seed challenge pool

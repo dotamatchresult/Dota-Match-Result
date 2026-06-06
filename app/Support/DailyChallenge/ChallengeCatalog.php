@@ -48,7 +48,7 @@ final class ChallengeCatalog
                 'base_requirement' => 30,
                 'increment_value' => 5,
                 'max_requirement' => 60,
-                'configuration' => null,
+                'configuration' => ['metric' => 'kills'],
                 'is_active' => true,
             ],
             [
@@ -60,7 +60,7 @@ final class ChallengeCatalog
                 'base_requirement' => 20,
                 'increment_value' => 5,
                 'max_requirement' => 40,
-                'configuration' => null,
+                'configuration' => ['metric' => 'denies'],
                 'is_active' => true,
             ],
             [
@@ -72,7 +72,7 @@ final class ChallengeCatalog
                 'base_requirement' => 10000,
                 'increment_value' => 2000,
                 'max_requirement' => 20000,
-                'configuration' => null,
+                'configuration' => ['metric' => 'hero_healing'],
                 'is_active' => true,
             ],
             [
@@ -113,7 +113,7 @@ final class ChallengeCatalog
                 'base_requirement' => 60,
                 'increment_value' => 0,
                 'max_requirement' => 60,
-                'configuration' => null,
+                'configuration' => ['metric' => 'last_hits'],
                 'is_active' => true,
             ],
             [

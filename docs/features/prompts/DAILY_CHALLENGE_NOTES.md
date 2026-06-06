@@ -22,7 +22,14 @@ Berikut adalah ide atau penyesuaian yang dapat dilakukan setelah implementasi aw
 
 ---
 
-### 3. Should challenges have difficulty tiers?
+### 3. Challenge `level` belum ada
+
+- Kolom `level sudah tersimpan namun challenge belum ter-assign
+- Contoh challenge "Win a game by reaching level 30". Unfinished: +0 win. Max: 1 win.
+
+---
+
+### 4. Should challenges have difficulty tiers?
 
 Example:
 

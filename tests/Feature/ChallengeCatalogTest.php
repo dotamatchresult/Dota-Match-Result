@@ -175,3 +175,85 @@ test('validator rejects duplicate codes', function () {
 
     ChallengeCatalogValidator::validate($definitions);
 })->throws(InvalidArgumentException::class, 'duplicate code');
+
+// --- Metric Validation ---
+
+test('validator accepts valid metric in configuration', function () {
+    $definitions = [
+        [
+            'code' => 'test_metric_challenge',
+            'name' => 'Test Metric Challenge',
+            'description' => 'A test challenge with metric',
+            'weight' => 10,
+            'base_requirement' => 30,
+            'increment_value' => 5,
+            'max_requirement' => 60,
+            'configuration' => ['metric' => 'kills'],
+        ],
+    ];
+
+    // Should not throw
+    ChallengeCatalogValidator::validate($definitions);
+
+    expect(true)->toBeTrue();
+});
+
+test('validator rejects invalid metric in configuration', function () {
+    $definitions = [
+        [
+            'code' => 'test_bad_metric',
+            'name' => 'Bad Metric Challenge',
+            'description' => 'A test challenge with invalid metric',
+            'weight' => 10,
+            'base_requirement' => 1,
+            'increment_value' => 1,
+            'max_requirement' => 3,
+            'configuration' => ['metric' => 'rampages'],
+        ],
+    ];
+
+    ChallengeCatalogValidator::validate($definitions);
+})->throws(InvalidArgumentException::class, 'is not a valid metric');
+
+// --- Catalog Metric Configurations ---
+
+test('metric-based challenges have metric in configuration', function () {
+    $definitions = ChallengeCatalog::definitions();
+
+    $metricCodes = ['total_kills', 'total_denies', 'total_heal', 'last_hits'];
+
+    foreach ($metricCodes as $code) {
+        $entry = collect($definitions)->firstWhere('code', $code);
+        expect($entry)->not->toBeNull();
+        expect($entry['configuration'])->toBeArray();
+        expect($entry['configuration']['metric'])->toBeString();
+    }
+});
+
+test('total_kills uses kills metric', function () {
+    $definitions = ChallengeCatalog::definitions();
+    $entry = collect($definitions)->firstWhere('code', 'total_kills');
+
+    expect($entry['configuration']['metric'])->toBe('kills');
+});
+
+test('total_denies uses denies metric', function () {
+    $definitions = ChallengeCatalog::definitions();
+    $entry = collect($definitions)->firstWhere('code', 'total_denies');
+
+    expect($entry['configuration']['metric'])->toBe('denies');
+});
+
+test('total_heal uses hero_healing metric', function () {
+    $definitions = ChallengeCatalog::definitions();
+    $entry = collect($definitions)->firstWhere('code', 'total_heal');
+
+    expect($entry['configuration']['metric'])->toBe('hero_healing');
+});
+
+test('last_hits uses last_hits metric', function () {
+    $definitions = ChallengeCatalog::definitions();
+    $entry = collect($definitions)->firstWhere('code', 'last_hits');
+
+    expect($entry['configuration']['metric'])->toBe('last_hits');
+});

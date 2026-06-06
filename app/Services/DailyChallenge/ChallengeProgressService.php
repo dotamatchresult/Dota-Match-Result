@@ -197,13 +197,16 @@ class ChallengeProgressService
      * Preserves the standardized structure: {contributors, matches, metadata}
      *
      * @param  array{contributors?: array, matches?: array, metadata?: array}  $existing
-     * @return array{contributors: array, matches: array, metadata: array}
+     * @return array{contributors: array, matches: array, best_attempt: int|null, best_member_id: int|null, best_match_id: int|null, metadata: array}
      */
     private function mergeProgressData(array $existing, EvaluationResult $result): array
     {
         $existingContributors = $existing['contributors'] ?? [];
         $existingMatches = $existing['matches'] ?? [];
         $existingMetadata = $existing['metadata'] ?? [];
+        $existingBestAttempt = $existing['best_attempt'] ?? null;
+        $existingBestMemberId = $existing['best_member_id'] ?? null;
+        $existingBestMatchId = $existing['best_match_id'] ?? null;
 
         // Merge contributors (sum values for same member_id)
         foreach ($result->progressData['contributors'] ?? [] as $memberId => $value) {
@@ -217,9 +220,24 @@ class ChallengeProgressService
         // Merge metadata
         $mergedMetadata = array_merge($existingMetadata, $result->progressData['metadata'] ?? []);
 
+        // Merge best_attempt — keep the higher value
+        $newBestAttempt = $result->progressData['best_attempt'] ?? null;
+        $mergedBestAttempt = $existingBestAttempt;
+        $mergedBestMemberId = $existingBestMemberId;
+        $mergedBestMatchId = $existingBestMatchId;
+
+        if ($newBestAttempt !== null && ($existingBestAttempt === null || $newBestAttempt > $existingBestAttempt)) {
+            $mergedBestAttempt = $newBestAttempt;
+            $mergedBestMemberId = $result->progressData['best_member_id'] ?? $existingBestMemberId;
+            $mergedBestMatchId = $result->progressData['best_match_id'] ?? $existingBestMatchId;
+        }
+
         return [
             'contributors' => $existingContributors,
             'matches' => $mergedMatches,
+            'best_attempt' => $mergedBestAttempt,
+            'best_member_id' => $mergedBestMemberId,
+            'best_match_id' => $mergedBestMatchId,
             'metadata' => $mergedMetadata,
         ];
     }

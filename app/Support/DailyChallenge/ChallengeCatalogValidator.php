@@ -66,6 +66,23 @@ final class ChallengeCatalogValidator
             }
 
             $codesSeen[] = $code;
+
+            // --- Validate configuration.metric references ---
+            if (isset($definition['configuration']['metric'])) {
+                $metric = $definition['configuration']['metric'];
+
+                if (! is_string($metric)) {
+                    throw new InvalidArgumentException(
+                        "Invalid catalog entry '{$code}': configuration.metric must be a string."
+                    );
+                }
+
+                if (! MetricRegistry::exists($metric)) {
+                    throw new InvalidArgumentException(
+                        "Invalid catalog entry '{$code}': configuration.metric '{$metric}' is not a valid metric."
+                    );
+                }
+            }
         }
     }
 }
