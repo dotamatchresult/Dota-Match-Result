@@ -145,12 +145,19 @@ class ChallengeMessageRenderer
             default => 'Evaluasi strategi kalian.',
         };
 
+        $incrementComments = [
+            'Sebagai hukuman, tugas kalian ditambah 👺:',
+            'Remidi dulu, tugas kalian ditambah 👺:',
+            'Tugas ditambah ben gayeng 👺:',
+        ];
+        $incrementComment = $incrementComments[array_rand($incrementComments)]; 
+
         $lines = [
             "🪦 {$failedCount} tantangan gak selesai",
             '',
             $encouragement,
             '',
-            'Sebagai hukuman, tantangan kalian ditambah 👺:',
+            $incrementComment,
         ];
 
         foreach ($failedChallenges as $challenge) {

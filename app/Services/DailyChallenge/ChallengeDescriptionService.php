@@ -39,12 +39,12 @@ class ChallengeDescriptionService
             'total_net_worth' => 'Kumpulkan total '.number_format($requirement, 0, ',', '.').' net worth',
 
             // Single Match Team (new)
-            'team_assists_match' => "Dapatkan total {$requirement} assist tim dalam satu match",
-            'team_kills_match' => "Dapatkan total {$requirement} kill tim dalam satu match",
-            'team_last_hits_match' => "Dapatkan total {$requirement} last hit tim dalam satu match",
-            'team_denies_match' => "Dapatkan total {$requirement} deny tim dalam satu match",
-            'team_hero_damage_match' => 'Berikan total '.number_format($requirement, 0, ',', '.').' hero damage tim dalam satu match',
-            'team_tower_damage_match' => 'Berikan total '.number_format($requirement, 0, ',', '.').' tower damage tim dalam satu match',
+            'team_assists_match' => "Dapatkan total {$requirement} assist dalam satu match",
+            'team_kills_match' => "Dapatkan total {$requirement} kill dalam satu match",
+            'team_last_hits_match' => "Dapatkan total {$requirement} last hit dalam satu match",
+            'team_denies_match' => "Dapatkan total {$requirement} deny dalam satu match",
+            'team_hero_damage_match' => 'Berikan total '.number_format($requirement, 0, ',', '.').' hero damage dalam satu match',
+            'team_tower_damage_match' => 'Berikan total '.number_format($requirement, 0, ',', '.').' tower damage dalam satu match',
 
             // Single Match Individual (new)
             'player_kills_match' => "Satu player mencapai {$requirement} kill dalam satu match",
