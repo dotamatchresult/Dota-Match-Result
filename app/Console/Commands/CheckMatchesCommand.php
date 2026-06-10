@@ -271,6 +271,15 @@ class CheckMatchesCommand extends Command
                     'xp_per_min' => $player['xp_per_min'] ?? 0,
                     'level' => $player['level'] ?? 0,
                     'benchmarks' => $player['benchmarks'] ?? [],
+                    'item_0' => $player['item_0'] ?? 0,
+                    'item_1' => $player['item_1'] ?? 0,
+                    'item_2' => $player['item_2'] ?? 0,
+                    'item_3' => $player['item_3'] ?? 0,
+                    'item_4' => $player['item_4'] ?? 0,
+                    'item_5' => $player['item_5'] ?? 0,
+                    'backpack_0' => $player['backpack_0'] ?? 0,
+                    'backpack_1' => $player['backpack_1'] ?? 0,
+                    'backpack_2' => $player['backpack_2'] ?? 0,
                 ]);
             }
 
