@@ -111,7 +111,7 @@ class ChallengeProgressService
         }
 
         // Persist within a transaction
-        DB::transaction(function () use ($destinationChallenge, $match, $result) {
+        DB::transaction(function () use ($destinationChallenge, $match, $result, $challengeCode) {
             $valueBefore = $destinationChallenge->current_progress ?? 0;
             $valueAfter = $valueBefore + $result->progressDelta;
 
@@ -147,7 +147,11 @@ class ChallengeProgressService
             ]);
 
             // Check completion
+            $requirementLower = in_array($challengeCode, ['fast_win']);
+
             if ($valueAfter >= $destinationChallenge->current_requirement) {
+                $this->completeChallenge($destinationChallenge);
+            } elseif ($requirementLower && $valueAfter < $destinationChallenge->current_requirement) {
                 $this->completeChallenge($destinationChallenge);
             }
         });

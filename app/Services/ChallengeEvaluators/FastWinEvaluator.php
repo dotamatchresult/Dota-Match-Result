@@ -82,7 +82,7 @@ class FastWinEvaluator implements ChallengeEvaluator
 
         return new EvaluationResult(
             matched: true,
-            progressDelta: 1,
+            progressDelta: $durationMinutes,
             contributors: [],
             progressData: [
                 'contributors' => [],
