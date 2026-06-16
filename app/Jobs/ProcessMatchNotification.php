@@ -342,6 +342,7 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => "{$heroName} secured {$player['kills']} kills",
                     'weight' => $weight,
+                    'hero' => $heroName,
                 ];
             }
 
@@ -367,6 +368,7 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => $deathText,
                     'weight' => $weights['deaths'],
+                    'hero' => $heroName,
                 ];
                 $extraHighlights[] = $deathText;
             }
@@ -394,6 +396,7 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => "{$heroName} achieved {$kda} KDA",
                     'weight' => $weight,
+                    'hero' => $heroName,
                 ];
             }
 
@@ -402,6 +405,7 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => "{$heroName} farmed at {$player['gold_per_min']} GPM",
                     'weight' => $weights['gpm'],
+                    'hero' => $heroName,
                 ];
             }
 
@@ -410,6 +414,7 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => "{$heroName} gained {$player['xp_per_min']} XPM",
                     'weight' => $weights['xpm'],
+                    'hero' => $heroName,
                 ];
             }
 
@@ -418,6 +423,7 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => "{$heroName} reached {$this->formatNumber($player['net_worth'])} net worth",
                     'weight' => $weights['net_worth'],
+                    'hero' => $heroName,
                 ];
             }
 
@@ -426,6 +432,7 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => "{$heroName} dealt {$this->formatNumber($player['hero_damage'])} hero damage",
                     'weight' => $weights['hero_damage'],
+                    'hero' => $heroName,
                 ];
             }
 
@@ -434,6 +441,7 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => "{$heroName} wrecked {$this->formatNumber($player['tower_damage'])} tower damage",
                     'weight' => $weights['tower_damage'],
+                    'hero' => $heroName,
                 ];
             }
 
@@ -442,11 +450,13 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => "{$heroName} contributed {$player['assists']} assists",
                     'weight' => $weights['assists'],
+                    'hero' => $heroName,
                 ];
             } elseif ($player['assists'] >= $thresholds['support_assists'] && $player['last_hits'] < 50) {
                 $highlights[] = [
                     'text' => "{$heroName} supported with {$player['assists']} assists",
                     'weight' => $weights['support_assists'],
+                    'hero' => $heroName,
                 ];
             }
 
@@ -455,15 +465,27 @@ class ProcessMatchNotification implements ShouldQueue
                 $highlights[] = [
                     'text' => "{$heroName} healed {$this->formatNumber($player['hero_healing'])} HP",
                     'weight' => $weights['healing'],
+                    'hero' => $heroName,
                 ];
             }
         }
 
         // Select top 3 highest weighted highlights
-        $selectedHighlights = collect($highlights)
-            ->sortByDesc('weight')
-            ->take(6)
-            ->shuffle()
+        $selectedHighlights = collect($highlights);
+        $selectedHighlights = $selectedHighlights->sortByDesc('weight')
+            ->reduce(function ($carry, $item) use ($selectedHighlights) {
+                $heroName = $item['hero'] ?? '';
+                $heroCount = $carry->where('hero', $heroName)->count();
+                $heroHLCount = $selectedHighlights->where('hero', $heroName)->count();
+
+                if ($heroCount >= 2 && $selectedHighlights->count() !== $heroHLCount) {
+                    return $carry;
+                }
+
+                $carry->push($item);
+
+                return $carry;
+            }, collect([]))
             ->take(3)
             ->pluck('text');
 
