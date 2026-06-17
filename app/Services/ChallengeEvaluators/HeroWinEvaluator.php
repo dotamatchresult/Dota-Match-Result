@@ -22,8 +22,7 @@ class HeroWinEvaluator implements ChallengeEvaluator
         DotaMatch $match,
         Collection $participatingMembers
     ): EvaluationResult {
-        $configuration = $challenge->challenge->configuration;
-        $heroId = $configuration['hero_id'] ?? null;
+        $heroId = $this->resolveHeroId($challenge);
 
         if ($heroId === null) {
             return new EvaluationResult(matched: false);
@@ -93,6 +92,26 @@ class HeroWinEvaluator implements ChallengeEvaluator
                 'metadata' => ['hero_id' => (int) $heroId],
             ],
         );
+    }
+
+    /**
+     * Resolve the hero_id from the destination challenge or its parent template.
+     */
+    private function resolveHeroId(DestinationChallenge $challenge): ?int
+    {
+        // Primary: set at assignment time in progress_data.metadata
+        $progressData = $challenge->progress_data;
+        if (isset($progressData['metadata']['hero_id'])) {
+            return (int) $progressData['metadata']['hero_id'];
+        }
+
+        // Fallback: set on the challenge template configuration
+        $configuration = $challenge->challenge->configuration;
+        if (isset($configuration['hero_id'])) {
+            return (int) $configuration['hero_id'];
+        }
+
+        return null;
     }
 
     /**
