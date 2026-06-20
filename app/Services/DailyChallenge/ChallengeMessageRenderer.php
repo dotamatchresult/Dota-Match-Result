@@ -47,7 +47,7 @@ class ChallengeMessageRenderer
 
         $count = count($notifications);
         $lines = [
-            "🎉 TANTANGAN SELESAI",
+            "*🎉 Tantangan Selesai*",
             '',
             "Kalian udah selesaikan {$count} tantangan:",
             '',
@@ -71,15 +71,38 @@ class ChallengeMessageRenderer
         $description = $this->descriptionService->describe($destinationChallenge);
         $progress = $destinationChallenge->current_progress ?? 0;
         $requirement = $destinationChallenge->current_requirement ?? 0;
+        $activeLines = [];
+
+        if ($destinationId = $destinationChallenge->destination_id) {
+            $activeChallenges = DestinationChallenge::query()
+                ->where('destination_id', $destinationId)
+                ->where('status', 'active')
+                ->with('challenge')
+                ->get();
+
+            if ($activeChallenges->isNotEmpty()) {
+                foreach ($activeChallenges as $dc) {
+                    $description = $this->descriptionService->describe($dc);
+                    $progress = $dc->current_progress;
+                    $requirement = $dc->current_requirement;
+
+                    $activeLines[] = "- {$description} ({$progress}/{$requirement} selesai)";
+                }
+            }
+        }
 
         return implode("\n", [
-            "🎯 TANTANGAN HARIAN",
+            "*🎯 Tantangan Harian*",
             '',
             "{$description}",
             '',
             "Progress:",
             "{$progress} / {$requirement}",
-            // "\n\nSemoga beruntung."
+            ...(!count($activeLines) ? [] : [
+                '',
+                "*🏇🏻 Tantangan Aktif*",
+                ...$activeLines,
+            ]),
         ]);
     }
 
@@ -103,7 +126,7 @@ class ChallengeMessageRenderer
         $randomComment = $comments[array_rand($comments)];
 
         return implode("\n", [
-            "🎉 TANTANGAN SELESAI",
+            "*🎉 Tantangan Selesai*",
             '',
             "✅ {$description}",
             '',
@@ -202,7 +225,7 @@ class ChallengeMessageRenderer
         }
 
         return implode("\n", [
-            "📚 TANTANGAN MENUMPUK",
+            "*📚 Kakehan Tantangan*",
             '',
             'Minimal main sing bener bos 🤪',
             '',
