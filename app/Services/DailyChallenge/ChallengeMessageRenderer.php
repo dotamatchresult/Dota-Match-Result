@@ -3,6 +3,7 @@
 namespace App\Services\DailyChallenge;
 
 use App\Models\ChallengeNotification;
+use App\Models\DestinationChallenge;
 
 class ChallengeMessageRenderer
 {
@@ -18,7 +19,7 @@ class ChallengeMessageRenderer
         return match ($notification->type) {
             'assigned_announcement' => $this->renderAssignedAnnouncement($notification),
             'completed' => $this->renderSingleCompleted($notification),
-            'backlog_full' => $this->renderBacklogFull(),
+            'backlog_full' => $this->renderBacklogFull($notification),
             'recap' => $this->renderRecap($notification),
             'review_delayed' => '', // $this->renderReviewDelayed(),
             default => '',
@@ -174,16 +175,39 @@ class ChallengeMessageRenderer
     /**
      * Render the backlog_full notification type.
      */
-    private function renderBacklogFull(): string
+    private function renderBacklogFull(ChallengeNotification $notification): string
     {
         $max = (int) config('dota.daily_challenge.max_active_per_destination', 5);
+        $failedLines = [];
+
+        $payload = $notification->payload;
+
+        if (is_array($payload) && isset($payload['destination_id'])) {
+            $destinationId = (int) $payload['destination_id'];
+            $activeChallenges = DestinationChallenge::query()
+                ->where('destination_id', $destinationId)
+                ->where('status', 'active')
+                ->with('challenge')
+                ->get();
+
+            if ($activeChallenges->isNotEmpty()) {
+                foreach ($activeChallenges as $dc) {
+                    $description = $this->descriptionService->describe($dc);
+                    $progress = $dc->current_progress;
+                    $requirement = $dc->current_requirement;
+
+                    $failedLines[] = "- {$description} ({$progress}/{$requirement} selesai)";
+                }
+            }
+        }
 
         return implode("\n", [
             "📚 TANTANGAN MENUMPUK",
             '',
-            "Kalian sudah punya {$max} tantangan aktif.",
-            '',
             'Minimal main sing bener bos 🤪',
+            '',
+            "Kalian sudah punya {$max} tantangan aktif:",
+            ...$failedLines,
         ]);
     }
 

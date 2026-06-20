@@ -51,17 +51,11 @@ class ChallengeReviewService
         // Count total active challenges for today (before idempotency filter)
         $reviewed = DestinationChallenge::query()
             ->where('status', 'active')
-            ->whereDate('assigned_date', $today)
             ->count();
 
         // Load all eligible challenges grouped by destination
         $eligibleChallenges = DestinationChallenge::query()
             ->where('status', 'active')
-            ->whereDate('assigned_date', $today)
-            ->whereDoesntHave('events', function ($query) use ($today) {
-                $query->whereIn('type', ['incremented', 'failed_review'])
-                    ->whereDate('created_at', $today);
-            })
             ->with(['challenge', 'destination'])
             ->get()
             ->groupBy('destination_id');
