@@ -34,7 +34,7 @@ return [
             'total_heal' => \App\Services\ChallengeEvaluators\AccumulativeTeamMetricEvaluator::class,
             'hero_win' => \App\Services\ChallengeEvaluators\HeroWinEvaluator::class,
             'item_win' => \App\Services\ChallengeEvaluators\ItemWinEvaluator::class,
-            'last_hits' => \App\Services\ChallengeEvaluators\SingleMatchIndividualMetricEvaluator::class,
+            'last_hits' => \App\Services\ChallengeEvaluators\AccumulativeTeamMetricEvaluator::class,
             'zero_death_win' => \App\Services\ChallengeEvaluators\ZeroDeathWinEvaluator::class,
             'fast_win' => \App\Services\ChallengeEvaluators\FastWinEvaluator::class,
             // Accumulative Team (new)
