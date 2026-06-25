@@ -76,6 +76,7 @@ class ChallengeMessageRenderer
         if ($destinationId = $destinationChallenge->destination_id) {
             $activeChallenges = DestinationChallenge::query()
                 ->where('destination_id', $destinationId)
+                ->where('id', '!=', $destinationChallenge->id)
                 ->where('status', 'active')
                 ->with('challenge')
                 ->get();
