@@ -83,11 +83,11 @@ class ChallengeMessageRenderer
 
             if ($activeChallenges->isNotEmpty()) {
                 foreach ($activeChallenges as $dc) {
-                    $description = $this->descriptionService->describe($dc);
-                    $progress = $dc->current_progress;
-                    $requirement = $dc->current_requirement;
+                    $dcDesc = $this->descriptionService->describe($dc);
+                    $dcProgress = $dc->current_progress;
+                    $dcRequirement = $dc->current_requirement;
 
-                    $activeLines[] = "- {$description} ({$progress}/{$requirement} selesai)";
+                    $activeLines[] = "- {$dcDesc} ({$dcProgress}/{$dcRequirement} selesai)";
                 }
             }
         }
