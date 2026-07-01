@@ -226,6 +226,7 @@ class ChallengeAssignmentService
         $timezone = config('dota.daily_challenge.timezone', 'Asia/Jakarta');
         $today = $this->todayInTimezone($timezone);
         $cooldownDate = Carbon::now($timezone)->subDays($cooldownDays)->toDateString();
+        $membersCount = $destination->members()->count();
 
         // Gather recently assigned challenge IDs within the cooldown window
         $recentChallengeIds = DestinationChallenge::query()
@@ -261,6 +262,9 @@ class ChallengeAssignmentService
             ->when(! empty($recentChallengeIds), fn ($q) => $q->whereNotIn('id', $recentChallengeIds))
             ->when(! empty($activeCodes), fn ($q) => $q->whereNotIn('code', $activeCodes))
             ->when(! empty($activeGroups), fn ($q) => $q->whereNotIn('group', $activeGroups))
+            ->when($membersCount <= 5, function ($query) {
+                $query->where('code', 'NOT LIKE', 'team_%');
+            })
             ->get();
 
         $candidate = $this->selectWeightedRandom($candidates);

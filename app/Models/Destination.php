@@ -37,6 +37,11 @@ class Destination extends Model
         ];
     }
 
+    public function members(): HasMany
+    {
+        return $this->hasMany(Member::class, 'destination', 'code');
+    }
+
     public static function forCode(string $code): ?self
     {
         return static::query()->where('code', $code)->first();
