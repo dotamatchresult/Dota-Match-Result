@@ -90,8 +90,8 @@ A full admin panel built with **Filament** for managing:
 ### 1. Clone and Install Dependencies
 
 ```bash
-git clone <repository-url> dota-match-result
-cd dota-match-result
+git clone https://github.com/dotamatchresult/Dota-Match-Result.git
+cd Dota-Match-Result
 composer install
 npm install && npm run build
 ```
