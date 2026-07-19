@@ -168,13 +168,18 @@ class WeeklySummaryCommand extends Command
         $avgDuration = $totalMatches > 0 ? round($totalDuration / $totalMatches) : 0;
 
         // Calculate aggregate K/D/A and damage stats for members only
-        $totalKills = 0;
-        $totalDeaths = 0;
-        $totalAssists = 0;
         $totalHeroDamage = 0;
         $totalTowerDamage = 0;
+        $matchesKillsAvg = [];
+        $matchesDeathsAvg = [];
+        $matchesAssistsAvg = [];
 
         foreach ($matches as $match) {
+            $totalKills = 0;
+            $totalDeaths = 0;
+            $totalAssists = 0;
+            $members = $match->members ?? [];
+
             foreach ($match->match_data['players'] ?? [] as $player) {
                 $accountId = $player['account_id'] ?? null;
 
@@ -193,6 +198,10 @@ class WeeklySummaryCommand extends Command
                     $totalTowerDamage += $player['tower_damage'] ?? 0;
                 }
             }
+
+            $matchesKillsAvg[] = $totalKills / count($members);
+            $matchesDeathsAvg[] = $totalDeaths / count($members);
+            $matchesAssistsAvg[] = $totalAssists / count($members);
         }
 
         // Get ranked hero statistics
@@ -212,9 +221,9 @@ class WeeklySummaryCommand extends Command
 
         // Format date range
         $dateRange = $this->formatDateRange($startDate, $endDate);
-        $avgKills = ! $totalMatches ? 0 : round($totalKills / $totalMatches, 1);
-        $avgDeaths = ! $totalMatches ? 0 : round($totalDeaths / $totalMatches, 1);
-        $avgAssists = ! $totalMatches ? 0 : round($totalAssists / $totalMatches, 1);
+        $avgKills = ! $totalMatches ? 0 : round(collect($matchesKillsAvg)->avg(), 1);
+        $avgDeaths = ! $totalMatches ? 0 : round(collect($matchesDeathsAvg)->avg(), 1);
+        $avgAssists = ! $totalMatches ? 0 : round(collect($matchesAssistsAvg)->avg(), 1);
 
         // Build message
         $message = "📊 **RINGKASAN MINGGUAN**\n";
