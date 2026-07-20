@@ -178,7 +178,7 @@ class WeeklySummaryCommand extends Command
             $totalKills = 0;
             $totalDeaths = 0;
             $totalAssists = 0;
-            $members = $match->members ?? [];
+            $memberCount = 0;
 
             foreach ($match->match_data['players'] ?? [] as $player) {
                 $accountId = $player['account_id'] ?? null;
@@ -196,12 +196,15 @@ class WeeklySummaryCommand extends Command
                     $totalAssists += $player['assists'] ?? 0;
                     $totalHeroDamage += $player['hero_damage'] ?? 0;
                     $totalTowerDamage += $player['tower_damage'] ?? 0;
+                    $memberCount++;
                 }
             }
 
-            $matchesKillsAvg[] = $totalKills / count($members);
-            $matchesDeathsAvg[] = $totalDeaths / count($members);
-            $matchesAssistsAvg[] = $totalAssists / count($members);
+            if ($memberCount > 0) {
+                $matchesKillsAvg[] = $totalKills / $memberCount;
+                $matchesDeathsAvg[] = $totalDeaths / $memberCount;
+                $matchesAssistsAvg[] = $totalAssists / $memberCount;
+            }
         }
 
         // Get ranked hero statistics
