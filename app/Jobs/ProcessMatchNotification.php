@@ -622,6 +622,7 @@ class ProcessMatchNotification implements ShouldQueue
             $honorTitles = [
                 ['👑 Fantasy MVP', '💬 _mention_'],
                 ['🐮 _jabatan_ MBG', '🐐 _babu_ MBG'],
+                ['🏪 _pangkat_ Kopdes', '🛒 _kasir_ Kopdes'],
                 ['🐖 _dukun_', '🧛🏻 _sekte_'],
                 ['👨🏻‍💼 Cocok dadi PNS', '👷🏻 Pantese mung Swasta'],
                 // ["😎 Ternyata Anak CEO", "🪦 Kalian semua saya pecat!"],
@@ -639,7 +640,7 @@ class ProcessMatchNotification implements ShouldQueue
                 })->random();
 
             if (Str::contains($titleBest, '_jabatan_')) {
-                $jabatan = ['Komisaris', 'Penggagas', 'Direktur', 'Chef'];
+                $jabatan = ['Komisaris', 'Penggagas', 'Direktur', 'Chef', 'Pewaris'];
                 $randomBest = collect($jabatan)->random();
 
                 $titleBest = str_replace('_jabatan_', $randomBest, $titleBest);
@@ -648,6 +649,11 @@ class ProcessMatchNotification implements ShouldQueue
                 $randomBest = collect($dukunTitles)->random();
 
                 $titleBest = str_replace('_dukun_', $randomBest, $titleBest);
+            } elseif (Str::contains($titleBest, '_pangkat_')) {
+                $pangkatTitles = ['Manager', 'Direktur', 'Owner', 'Pencetus', 'Pelatih Militer', 'Entuk Warisan'];
+                $randomBest = collect($pangkatTitles)->random();
+
+                $titleBest = str_replace('_pangkat_', $randomBest, $titleBest);
             }
 
             if (Str::contains($titleHonor, '_mention_')) {
@@ -670,6 +676,11 @@ class ProcessMatchNotification implements ShouldQueue
                 $randomHonor = collect($namaPts)->random();
 
                 $titleHonor = str_replace('_nama_pt_', $randomHonor, $titleHonor);
+            } elseif (Str::contains($titleHonor, '_babu_')) {
+                $babuTitles = ['Kasir', 'Bendahara', 'Satpam', 'Pelanggan', 'Marketing', 'Pesaing'];
+                $randomHonor = collect($babuTitles)->random();
+
+                $titleHonor = str_replace('_babu_', $randomHonor, $titleHonor);
             }
 
             $sections[] = "{$titleBest}\n- {$memberName} __({$heroName} | {$memberScore} pts)__ ";
