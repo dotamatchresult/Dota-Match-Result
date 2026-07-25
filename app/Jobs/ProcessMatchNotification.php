@@ -676,11 +676,11 @@ class ProcessMatchNotification implements ShouldQueue
                 $randomHonor = collect($namaPts)->random();
 
                 $titleHonor = str_replace('_nama_pt_', $randomHonor, $titleHonor);
-            } elseif (Str::contains($titleHonor, '_babu_')) {
-                $babuTitles = ['Kasir', 'Bendahara', 'Satpam', 'Pelanggan', 'Marketing', 'Pesaing'];
-                $randomHonor = collect($babuTitles)->random();
+            } elseif (Str::contains($titleHonor, '_kasir_')) {
+                $kasirTitles = ['Kasir', 'Bendahara', 'Satpam', 'Pelanggan', 'Marketing', 'Pesaing'];
+                $randomHonor = collect($kasirTitles)->random();
 
-                $titleHonor = str_replace('_babu_', $randomHonor, $titleHonor);
+                $titleHonor = str_replace('_kasir_', $randomHonor, $titleHonor);
             }
 
             $sections[] = "{$titleBest}\n- {$memberName} __({$heroName} | {$memberScore} pts)__ ";
