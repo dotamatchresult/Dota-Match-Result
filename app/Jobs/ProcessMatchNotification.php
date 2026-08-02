@@ -274,7 +274,7 @@ class ProcessMatchNotification implements ShouldQueue
         $fantasyMVP = $this->generateFantasyMVP($matchData, $memberPlayers, $players, $type);
         if ($fantasyMVP) {
             if ($type === 'telegram') {
-                $fantasyMVP = TelegramService::escapeMarkdown($fantasyMVP);
+                $fantasyMVP = TelegramService::escapeMarkdownPreserveFormatting($fantasyMVP);
             }
             $message .= "\n{$fantasyMVP}\n";
         }

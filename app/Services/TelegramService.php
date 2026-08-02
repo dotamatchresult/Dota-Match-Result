@@ -34,6 +34,33 @@ class TelegramService
     }
 
     /**
+     * Escape a message while preserving **bold** and __italic__ formatting markers.
+     *
+     * This first escapes content inside the markers, then protects the markers
+     * themselves, escapes any remaining special characters, and restores markers.
+     * Use this for messages that contain both dynamic content and formatting.
+     */
+    public static function escapeMarkdownPreserveFormatting(string $message): string
+    {
+        // Escape content inside **bold** markers
+        $message = preg_replace_callback('/\*\*(.+?)\*\*/s', function (array $m): string {
+            return '**'.self::escapeMarkdown($m[1]).'**';
+        }, $message);
+
+        // Escape content inside __italic__ markers
+        $message = preg_replace_callback('/__(.+?)__/s', function (array $m): string {
+            return '__'.self::escapeMarkdown($m[1]).'__';
+        }, $message);
+
+        // Protect formatting markers, escape remaining text, then restore markers
+        $message = str_replace(['**', '__'], ["\x00\x01", "\x00\x02"], $message);
+        $message = self::escapeMarkdown($message);
+        $message = str_replace(["\x00\x01", "\x00\x02"], ['**', '__'], $message);
+
+        return $message;
+    }
+
+    /**
      * Send a photo to the Telegram group with a caption.
      *
      * Caption is truncated to Telegram's 1024-character API limit.
