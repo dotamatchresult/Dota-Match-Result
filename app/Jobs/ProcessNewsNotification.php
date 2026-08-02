@@ -130,6 +130,11 @@ class ProcessNewsNotification implements ShouldQueue
         }
 
         if ($platform === 'telegram') {
+            // Escape dynamic content for Telegram Markdown to prevent parse errors
+            $title = TelegramService::escapeMarkdown($title);
+            $excerpt = TelegramService::escapeMarkdown($excerpt);
+            $url = TelegramService::escapeMarkdown($url);
+
             // Telegram uses **bold** markdown
             $result = "{$heading}\n\n**{$title}**\n\n{$excerpt}";
 

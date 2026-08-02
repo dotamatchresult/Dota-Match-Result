@@ -174,10 +174,10 @@ test('match notification includes game mode, duration, scores and opendota link'
 
     // Job formats message with Telegram Markdown (**bold**) which is captured before FonnteService conversion
     expect($sentMessage)
-        ->toContain('🕹️ **Turbo** _(24 minutes)_')
+        ->toContain('🕹️ **Turbo** __(24 minutes)__')
         ->toContain('**TestPlayer** won a game as Radiant')
         ->toContain('**Radiant** 28 ⚔️ 17 **Dire**')
-        ->toContain('**TestPlayer** _(Crystal Maiden)_ - 10/3/15')
+        ->toContain('**TestPlayer** __(Crystal Maiden | Lv. 0)__ - 10/3/15')
         ->toContain('> Match Detail opendota.com/matches/8165933418');
 });
 

@@ -223,10 +223,22 @@ class ProcessMatchNotification implements ShouldQueue
         $membersWon = $firstMemberTeam === $radiantWin;
         $teamName = $firstMemberTeam ? 'Radiant' : 'Dire';
 
+        // Escape dynamic content for Telegram Markdown to prevent parse errors
+        if ($type === 'telegram') {
+            $gameMode = TelegramService::escapeMarkdown($gameMode);
+
+            foreach ($memberPlayers as &$player) {
+                $player['hero_name'] = TelegramService::escapeMarkdown($player['hero_name']);
+            }
+            unset($player);
+        }
+
         // Build message with Telegram Markdown formatting (**bold**)
         $message = "🕹️ **{$gameMode}** __({$duration})__\n\n";
 
-        $memberNames = array_map(fn ($p) => "**{$p['member']->name}**", $memberPlayers);
+        $memberNames = array_map(fn ($p) => $type === 'telegram'
+            ? '**'.TelegramService::escapeMarkdown($p['member']->name).'**'
+            : "**{$p['member']->name}**", $memberPlayers);
         $outcome = $membersWon ? 'won' : 'lost';
         $message .= implode(', ', $memberNames)." {$outcome} a game as {$teamName}\n\n";
 
@@ -239,7 +251,11 @@ class ProcessMatchNotification implements ShouldQueue
                 $heroName = "{$player['hero_name']} | Lv. {$player['level']}";
             }
 
-            $message .= "**{$player['member']->name}** __({$heroName})__ - {$player['kills']}/{$player['deaths']}/{$player['assists']}\n";
+            $name = $type === 'telegram'
+                ? TelegramService::escapeMarkdown($player['member']->name)
+                : $player['member']->name;
+
+            $message .= "**{$name}** __({$heroName})__ - {$player['kills']}/{$player['deaths']}/{$player['assists']}\n";
         }
 
         // Add highlights
@@ -247,6 +263,9 @@ class ProcessMatchNotification implements ShouldQueue
         if (! empty($highlights)) {
             $message .= "\n🔥 Highlights\n";
             foreach ($highlights as $highlight) {
+                if ($type === 'telegram') {
+                    $highlight = TelegramService::escapeMarkdown($highlight);
+                }
                 $message .= "- {$highlight}\n";
             }
         }
@@ -254,6 +273,9 @@ class ProcessMatchNotification implements ShouldQueue
         // Add Fantasy MVP (only if 2+ members of same destination type)
         $fantasyMVP = $this->generateFantasyMVP($matchData, $memberPlayers, $players, $type);
         if ($fantasyMVP) {
+            if ($type === 'telegram') {
+                $fantasyMVP = TelegramService::escapeMarkdown($fantasyMVP);
+            }
             $message .= "\n{$fantasyMVP}\n";
         }
 

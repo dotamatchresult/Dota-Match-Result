@@ -100,7 +100,8 @@ class AnalyzeMatchWithAI implements ShouldQueue
         $analysis = $result['analysis_text'];
 
         if ($memberTelegramCount >= $memberTelegramMin) {
-            $message = "*Analisis kekalahan ({$this->dotaMatch->match_id}):*\n{$analysis}";
+            $escapedAnalysis = TelegramService::escapeMarkdown($analysis);
+            $message = "*Analisis kekalahan ({$this->dotaMatch->match_id}):*\n{$escapedAnalysis}";
             $telegram->sendMessage($message, 'ai');
 
             Log::info('AI analysis sent to Telegram', [

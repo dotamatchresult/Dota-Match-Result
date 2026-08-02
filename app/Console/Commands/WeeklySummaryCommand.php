@@ -841,6 +841,7 @@ class WeeklySummaryCommand extends Command
 
         foreach ($messages as $index => $message) {
             try {
+                $message = $this->escapeMessageForTelegram($message);
                 $success = $telegram->sendMessage($message, 'ai');
 
                 if ($success) {
@@ -859,6 +860,32 @@ class WeeklySummaryCommand extends Command
                 Log::error('Exception sending weekly summary Telegram message '.($index + 1), ['error' => $e->getMessage()]);
             }
         }
+    }
+
+    /**
+     * Escape a message for Telegram's Markdown parse mode.
+     *
+     * Escapes special characters inside and outside **bold** / __italic__ markers
+     * to prevent "can't parse entities" errors from the Telegram API.
+     */
+    private function escapeMessageForTelegram(string $message): string
+    {
+        // Escape content inside **bold** markers
+        $message = preg_replace_callback('/\*\*(.+?)\*\*/s', function (array $m): string {
+            return '**'.TelegramService::escapeMarkdown($m[1]).'**';
+        }, $message);
+
+        // Escape content inside __italic__ markers
+        $message = preg_replace_callback('/__(.+?)__/s', function (array $m): string {
+            return '__'.TelegramService::escapeMarkdown($m[1]).'__';
+        }, $message);
+
+        // Protect formatting markers, escape remaining text, then restore markers
+        $message = str_replace(['**', '__'], ["\x00\x01", "\x00\x02"], $message);
+        $message = TelegramService::escapeMarkdown($message);
+        $message = str_replace(["\x00\x01", "\x00\x02"], ['**', '__'], $message);
+
+        return $message;
     }
 
     /**

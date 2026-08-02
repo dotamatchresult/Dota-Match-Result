@@ -18,6 +18,22 @@ class TelegramService
     }
 
     /**
+     * Escape special characters for Telegram's legacy Markdown parse mode.
+     *
+     * Characters escaped: \, *, _, `, [
+     * This prevents Telegram's parser from misinterpreting literal characters
+     * as Markdown formatting entities, which would cause "can't parse entities" errors.
+     */
+    public static function escapeMarkdown(string $text): string
+    {
+        return str_replace(
+            ['\\', '*', '_', '`', '['],
+            ['\\\\', '\\*', '\\_', '\\`', '\\['],
+            $text
+        );
+    }
+
+    /**
      * Send a photo to the Telegram group with a caption.
      *
      * Caption is truncated to Telegram's 1024-character API limit.

@@ -92,7 +92,9 @@ class DailyReminderCommand extends Command
                     }
 
                     if ($member->platform === 'telegram') {
-                        $telegram->sendMessage($message, 'ai', $target);
+                        $escapedName = TelegramService::escapeMarkdown($primaryMember->name);
+                        $telegramMessage = str_replace($primaryMember->name, $escapedName, $message);
+                        $telegram->sendMessage($telegramMessage, 'ai', $target);
 
                         Log::info('Daily reminder sent via Telegram', [
                             'member' => $member->name,
