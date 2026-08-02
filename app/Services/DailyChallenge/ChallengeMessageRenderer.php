@@ -3,7 +3,9 @@
 namespace App\Services\DailyChallenge;
 
 use App\Models\ChallengeNotification;
+use App\Models\Destination;
 use App\Models\DestinationChallenge;
+use App\Services\TelegramService;
 
 class ChallengeMessageRenderer
 {
@@ -14,13 +16,15 @@ class ChallengeMessageRenderer
     /**
      * Render a single notification into a formatted message string.
      */
-    public function render(ChallengeNotification $notification): string
+    public function render(ChallengeNotification $notification, ?Destination $destination = null): string
     {
+        $isTelegram = $this->isTelegram($destination);
+
         return match ($notification->type) {
-            'assigned_announcement' => $this->renderAssignedAnnouncement($notification),
-            'completed' => $this->renderSingleCompleted($notification),
-            'backlog_full' => $this->renderBacklogFull($notification),
-            'recap' => $this->renderRecap($notification),
+            'assigned_announcement' => $this->renderAssignedAnnouncement($notification, $isTelegram),
+            'completed' => $this->renderSingleCompleted($notification, $isTelegram),
+            'backlog_full' => $this->renderBacklogFull($notification, $isTelegram),
+            'recap' => $this->renderRecap($notification, $isTelegram),
             'review_delayed' => '', // $this->renderReviewDelayed(),
             default => '',
         };
@@ -33,16 +37,19 @@ class ChallengeMessageRenderer
      *
      * @param  ChallengeNotification[]  $notifications
      */
-    public function renderBatch(array $notifications): string
+    public function renderBatch(array $notifications, ?Destination $destination = null): string
     {
+        $isTelegram = $this->isTelegram($destination);
+
         if (count($notifications) === 1) {
-            return $this->renderSingleCompleted($notifications[0]);
+            return $this->renderSingleCompleted($notifications[0], $isTelegram);
         }
 
-        $descriptions = array_map(function (ChallengeNotification $notification) {
+        $descriptions = array_map(function (ChallengeNotification $notification) use ($isTelegram) {
             $destinationChallenge = $notification->destinationChallenge;
+            $description = $this->descriptionService->describe($destinationChallenge);
 
-            return '✅ '.$this->descriptionService->describe($destinationChallenge);
+            return '✅ '.$this->escape($description, $isTelegram);
         }, $notifications);
 
         $count = count($notifications);
@@ -60,7 +67,7 @@ class ChallengeMessageRenderer
     /**
      * Render the assigned_announcement notification type.
      */
-    private function renderAssignedAnnouncement(ChallengeNotification $notification): string
+    private function renderAssignedAnnouncement(ChallengeNotification $notification, bool $isTelegram = false): string
     {
         $destinationChallenge = $notification->destinationChallenge;
 
@@ -68,7 +75,7 @@ class ChallengeMessageRenderer
             return '';
         }
 
-        $description = $this->descriptionService->describe($destinationChallenge);
+        $description = $this->escape($this->descriptionService->describe($destinationChallenge), $isTelegram);
         $progress = $destinationChallenge->current_progress ?? 0;
         $requirement = $destinationChallenge->current_requirement ?? 0;
         $activeLines = [];
@@ -83,7 +90,7 @@ class ChallengeMessageRenderer
 
             if ($activeChallenges->isNotEmpty()) {
                 foreach ($activeChallenges as $dc) {
-                    $dcDesc = $this->descriptionService->describe($dc);
+                    $dcDesc = $this->escape($this->descriptionService->describe($dc), $isTelegram);
                     $dcProgress = $dc->current_progress;
                     $dcRequirement = $dc->current_requirement;
 
@@ -110,7 +117,7 @@ class ChallengeMessageRenderer
     /**
      * Render a single completed notification.
      */
-    private function renderSingleCompleted(ChallengeNotification $notification): string
+    private function renderSingleCompleted(ChallengeNotification $notification, bool $isTelegram = false): string
     {
         $destinationChallenge = $notification->destinationChallenge;
 
@@ -118,7 +125,7 @@ class ChallengeMessageRenderer
             return '';
         }
 
-        $description = $this->descriptionService->describe($destinationChallenge);
+        $description = $this->escape($this->descriptionService->describe($destinationChallenge), $isTelegram);
 
         $comments = [
             "Kerja bagus 👍🏻",
@@ -141,7 +148,7 @@ class ChallengeMessageRenderer
      * Only sent when there are failed challenges. Reads failed challenge
      * details from the notification payload.
      */
-    private function renderRecap(ChallengeNotification $notification): string
+    private function renderRecap(ChallengeNotification $notification, bool $isTelegram = false): string
     {
         $payload = $notification->payload;
         $failedCount = (int) ($payload['failed_count'] ?? 0);
@@ -186,7 +193,7 @@ class ChallengeMessageRenderer
         ];
 
         foreach ($failedChallenges as $challenge) {
-            $description = $challenge['description'] ?? '';
+            $description = $this->escape($challenge['description'] ?? '', $isTelegram);
             $progress = $challenge['progress'] ?? 0;
             $requirement = $challenge['requirement'] ?? 0;
 
@@ -199,7 +206,7 @@ class ChallengeMessageRenderer
     /**
      * Render the backlog_full notification type.
      */
-    private function renderBacklogFull(ChallengeNotification $notification): string
+    private function renderBacklogFull(ChallengeNotification $notification, bool $isTelegram = false): string
     {
         $max = (int) config('dota.daily_challenge.max_active_per_destination', 5);
         $failedLines = [];
@@ -216,7 +223,7 @@ class ChallengeMessageRenderer
 
             if ($activeChallenges->isNotEmpty()) {
                 foreach ($activeChallenges as $dc) {
-                    $description = $this->descriptionService->describe($dc);
+                    $description = $this->escape($this->descriptionService->describe($dc), $isTelegram);
                     $progress = $dc->current_progress;
                     $requirement = $dc->current_requirement;
 
@@ -246,5 +253,24 @@ class ChallengeMessageRenderer
             "Masih ada pertandingan yang belum diproses OpenDota.",
             'Kami akan mengecek ulang secara otomatis setelah hasil pertandingan tersedia.',
         ]);
+    }
+
+    /**
+     * Determine whether the destination is Telegram, which requires Markdown escaping.
+     */
+    private function isTelegram(?Destination $destination): bool
+    {
+        return $destination?->code === Destination::CODE_TELEGRAM;
+    }
+
+    /**
+     * Escape dynamic content for Telegram Markdown to prevent "can't parse entities" errors.
+     *
+     * Descriptions come from hero/item names and admin-authored challenge text, which
+     * may contain unescaped *, _, `, or [ characters that break Telegram's parser.
+     */
+    private function escape(string $text, bool $isTelegram): string
+    {
+        return $isTelegram ? TelegramService::escapeMarkdown($text) : $text;
     }
 }

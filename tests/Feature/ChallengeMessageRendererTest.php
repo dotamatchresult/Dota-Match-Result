@@ -2,6 +2,7 @@
 
 use App\Models\Challenge;
 use App\Models\ChallengeNotification;
+use App\Models\Destination;
 use App\Models\DestinationChallenge;
 use App\Models\Hero;
 use App\Services\DailyChallenge\ChallengeMessageRenderer;
@@ -290,4 +291,59 @@ test('review_delayed renders correct format', function () {
     expect($message)->toContain('⏳ Review tantangan hari ini ditunda.');
     expect($message)->toContain('Masih ada match yang belum diproses OpenDota.');
     expect($message)->toContain('Kami akan mengecek ulang secara otomatis setelah hasil match tersedia.');
+});
+
+// --- Telegram Markdown escaping ---
+
+test('recap escapes markdown special characters for telegram destination', function () {
+    $telegramDestination = Destination::query()->firstOrCreate(['code' => Destination::CODE_TELEGRAM]);
+
+    $notification = ChallengeNotification::factory()->create([
+        'destination_challenge_id' => null,
+        'type' => 'recap',
+        'status' => 'pending',
+        'payload' => [
+            'destination_id' => $telegramDestination->id,
+            'failed_count' => 1,
+            'failed_challenges' => [
+                [
+                    'description' => 'Menangkan 3 match_solo dengan *Anti-Mage* [carry]',
+                    'progress' => 1,
+                    'requirement' => 3,
+                ],
+            ],
+        ],
+    ]);
+
+    $renderer = app(ChallengeMessageRenderer::class);
+    $message = $renderer->render($notification, $telegramDestination);
+
+    expect($message)->toContain('Menangkan 3 match\\_solo dengan \\*Anti-Mage\\* \\[carry]');
+});
+
+test('recap does not escape markdown special characters for non-telegram destination', function () {
+    $whatsappDestination = Destination::query()->firstOrCreate(['code' => Destination::CODE_WHATSAPP]);
+
+    $notification = ChallengeNotification::factory()->create([
+        'destination_challenge_id' => null,
+        'type' => 'recap',
+        'status' => 'pending',
+        'payload' => [
+            'destination_id' => $whatsappDestination->id,
+            'failed_count' => 1,
+            'failed_challenges' => [
+                [
+                    'description' => 'Menangkan 3 match_solo dengan Anti-Mage',
+                    'progress' => 1,
+                    'requirement' => 3,
+                ],
+            ],
+        ],
+    ]);
+
+    $renderer = app(ChallengeMessageRenderer::class);
+    $message = $renderer->render($notification, $whatsappDestination);
+
+    expect($message)->toContain('Menangkan 3 match_solo dengan Anti-Mage');
+    expect($message)->not->toContain('match\\_solo');
 });
