@@ -156,7 +156,7 @@ class ChallengeNotificationDispatcher
                 return false;
             }
 
-            $message = $this->renderer->render($notification);
+            $message = $this->renderer->render($notification, $destination);
 
             if ($message === '') {
                 Log::warning('ChallengeNotificationDispatcher: empty rendered message', [
@@ -195,7 +195,7 @@ class ChallengeNotificationDispatcher
     private function sendBatch(array $notifications, Destination $destination): bool
     {
         try {
-            $message = $this->renderer->renderBatch($notifications);
+            $message = $this->renderer->renderBatch($notifications, $destination);
 
             if ($message === '') {
                 Log::warning('ChallengeNotificationDispatcher: empty rendered batch message', [

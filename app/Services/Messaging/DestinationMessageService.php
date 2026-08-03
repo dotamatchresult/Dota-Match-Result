@@ -7,6 +7,7 @@ use App\Models\Destination;
 use App\Services\FonnteService;
 use App\Services\TelegramService;
 use InvalidArgumentException;
+use RuntimeException;
 
 class DestinationMessageService
 {
@@ -21,13 +22,18 @@ class DestinationMessageService
      * Routes by destination code: whatsapp → FonnteService, telegram → TelegramService.
      *
      * @throws InvalidArgumentException If the destination code is not supported.
+     * @throws RuntimeException If the underlying transport reports the send failed.
      */
     public function send(Destination $destination, string $message): void
     {
-        match ($destination->code) {
+        $sent = match ($destination->code) {
             DestinationType::WhatsApp->value => $this->fonnteService->sendMessage($destination->target, $message),
             DestinationType::Telegram->value => $this->telegramService->sendMessage($message, 'default', $destination->target),
             default => throw new InvalidArgumentException("Unsupported destination code: {$destination->code}"),
         };
+
+        if (! $sent) {
+            throw new RuntimeException("Failed to send message via {$destination->code} to destination {$destination->id}");
+        }
     }
 }
