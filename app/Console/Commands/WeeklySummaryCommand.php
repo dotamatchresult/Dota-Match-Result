@@ -230,7 +230,7 @@ class WeeklySummaryCommand extends Command
 
         // Build message
         $message = "📊 **RINGKASAN MINGGUAN**\n";
-        $message .= "_({$dateRange})_\n\n";
+        $message .= "__({$dateRange})__\n\n";
 
         $message .= "📈 Statistik Tim\n";
         $message .= "- Total Pertandingan: {$totalMatches}\n";
@@ -279,7 +279,7 @@ class WeeklySummaryCommand extends Command
         }
 
         if (empty($memberStats)) {
-            return "🏆 **PENGHARGAAN MINGGUAN**\n_(Minimum 5 pertandingan)_\n\nTidak ada member yang memenuhi kriteria minimum.";
+            return "🏆 **PENGHARGAAN MINGGUAN**\n__(Minimum 5 pertandingan)__\n\nTidak ada member yang memenuhi kriteria minimum.";
         }
 
         // Find award winners
@@ -298,7 +298,7 @@ class WeeklySummaryCommand extends Command
 
         // Build message
         $message = "🏆 **PENGHARGAAN MINGGUAN**\n";
-        $message .= "_(Minimum 5 pertandingan)_\n\n";
+        $message .= "__(Minimum 5 pertandingan)__\n\n";
 
         // MVP
         if ($mvp) {
