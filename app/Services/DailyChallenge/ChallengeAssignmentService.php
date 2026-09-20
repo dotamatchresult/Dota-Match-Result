@@ -155,6 +155,7 @@ class ChallengeAssignmentService
         if ($challenge->code === 'item_win') {
             $item = Item::query()
                 ->where('cost', '>=', 4000)
+                ->whereNotNull('dname')
                 ->inRandomOrder()
                 ->first();
 
