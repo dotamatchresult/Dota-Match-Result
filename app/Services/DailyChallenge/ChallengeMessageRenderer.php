@@ -168,6 +168,7 @@ class ChallengeMessageRenderer
         $failMultipleComments = [
             'Pancen kroco jan arek-arek iki 🪳',
             'Main dota kui nggo strategi bos 😉',
+            'Diperkuat lagi kokopan nya 🫱🏻‍🫲🏻',
         ];
         $failMultipleComment = $failMultipleComments[array_rand($failMultipleComments)];
 
