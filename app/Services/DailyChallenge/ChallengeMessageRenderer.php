@@ -130,6 +130,7 @@ class ChallengeMessageRenderer
         $comments = [
             "Kerja bagus 👍🏻",
             "Meski kroco tapi boleh juga 💯",
+            "Jaga terus kokopan nya 🧑‍🤝‍🧑"
         ];
         $randomComment = $comments[array_rand($comments)];
 
