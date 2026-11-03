@@ -163,13 +163,13 @@ class ChallengeMessageRenderer
             'Wah, pada kesusahan ya 😢',
             'Jangan sedih, coba evaluasi lagi strateginya 💡',
             'Mungkin bisa coba hero/role lain? 🤔',
+            'Diperkuat lagi kokopan nya 🫱🏻‍🫲🏻',
         ];
         $failOneComment = $failOneComments[array_rand($failOneComments)];
 
         $failMultipleComments = [
             'Pancen kroco jan arek-arek iki 🪳',
             'Main dota kui nggo strategi bos 😉',
-            'Diperkuat lagi kokopan nya 🫱🏻‍🫲🏻',
         ];
         $failMultipleComment = $failMultipleComments[array_rand($failMultipleComments)];
 
