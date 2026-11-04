@@ -4,6 +4,8 @@ namespace App\Services\Analysis\Agents;
 
 use App\DataObjects\Analysis\AnalysisBullets;
 use App\DataObjects\Analysis\CompressionContext;
+use App\Exceptions\InsufficientCreditException;
+use App\Services\Analysis\InsufficientCreditDetector;
 use Illuminate\Support\Facades\Log;
 use OpenAI\Contracts\ClientContract;
 
@@ -57,6 +59,10 @@ class BulletCompressorAgent
                 model: $response->model ?? config('openai.model'),
             );
         } catch (\Exception $e) {
+            if (InsufficientCreditDetector::matches($e)) {
+                throw new InsufficientCreditException($e->getMessage(), 0, $e);
+            }
+
             Log::error('BulletCompressorAgent LLM exception', [
                 'error' => $e->getMessage(),
             ]);

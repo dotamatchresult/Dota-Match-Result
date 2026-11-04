@@ -4,6 +4,8 @@ namespace App\Services\Analysis\Agents;
 
 use App\DataObjects\Analysis\DiagnosisContext;
 use App\DataObjects\Analysis\DiagnosisResult;
+use App\Exceptions\InsufficientCreditException;
+use App\Services\Analysis\InsufficientCreditDetector;
 use Illuminate\Support\Facades\Log;
 use OpenAI\Contracts\ClientContract;
 
@@ -79,6 +81,10 @@ class DiagnosisAgent
                 scalingAssessment: (array) ($data['scaling_assessment'] ?? []),
             );
         } catch (\Exception $e) {
+            if (InsufficientCreditDetector::matches($e)) {
+                throw new InsufficientCreditException($e->getMessage(), 0, $e);
+            }
+
             Log::error('DiagnosisAgent LLM exception', [
                 'match_id' => $context->matchId,
                 'error' => $e->getMessage(),

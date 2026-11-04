@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\InsufficientCreditException;
 use App\Models\Destination;
 use App\Models\DotaMatch;
 use App\Models\Member;
@@ -10,11 +11,16 @@ use App\Services\FonnteService;
 use App\Services\TelegramService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class AnalyzeMatchWithAI implements ShouldQueue
 {
     use Queueable;
+
+    public const INSUFFICIENT_CREDIT_CACHE_KEY = 'ai-credit-exhausted-notified';
+
+    public const INSUFFICIENT_CREDIT_MESSAGE = 'Saldo AI sudah habis lur, saatnya minta sumbangan 🪙';
 
     /**
      * Create a new job instance.
@@ -66,7 +72,23 @@ class AnalyzeMatchWithAI implements ShouldQueue
         }
 
         // Execute analysis pipeline
-        $result = $pipeline->analyze($this->dotaMatch->match_data, $memberSteamIds);
+        try {
+            $result = $pipeline->analyze($this->dotaMatch->match_data, $memberSteamIds);
+        } catch (InsufficientCreditException $e) {
+            Log::error('AI analysis skipped: insufficient credit balance', [
+                'match_id' => $this->dotaMatch->match_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->notifyInsufficientCredit(
+                $fonnte,
+                $telegram,
+                $memberTelegramCount >= $memberTelegramMin,
+                $memberWhatsAppCount >= $memberWhatsAppMin,
+            );
+
+            return;
+        }
 
         if (! $result) {
             Log::error('Analysis pipeline returned null', [
@@ -75,6 +97,9 @@ class AnalyzeMatchWithAI implements ShouldQueue
 
             return;
         }
+
+        // Balance works again — allow the next depletion to notify immediately
+        Cache::forget(self::INSUFFICIENT_CREDIT_CACHE_KEY);
 
         // Store analysis results
         $this->dotaMatch->update([
@@ -123,6 +148,46 @@ class AnalyzeMatchWithAI implements ShouldQueue
             'ram_usage' => round(memory_get_usage() / 1024 / 1024, 2).' MB',
             'peak_ram_usage' => round(memory_get_peak_usage() / 1024 / 1024, 2).' MB',
         ]);
+    }
+
+    /**
+     * Tell the audience the AI balance is exhausted, at most once per cooldown window.
+     */
+    private function notifyInsufficientCredit(
+        FonnteService $fonnte,
+        TelegramService $telegram,
+        bool $toTelegram,
+        bool $toWhatsApp,
+    ): void {
+        // Cache::add is atomic: only one job wins the right to send within the window.
+        if (! Cache::add(self::INSUFFICIENT_CREDIT_CACHE_KEY, now()->timestamp, now()->addWeek())) {
+            return;
+        }
+
+        $sent = false;
+
+        if ($toTelegram) {
+            try {
+                $sent = $telegram->sendMessage(self::INSUFFICIENT_CREDIT_MESSAGE, 'ai') || $sent;
+            } catch (\Throwable $e) {
+                Log::error('Failed to send insufficient credit notice to Telegram', ['error' => $e->getMessage()]);
+            }
+        }
+
+        $phoneNumber = Destination::targetForCode(Destination::CODE_WHATSAPP);
+
+        if ($toWhatsApp && $phoneNumber) {
+            try {
+                $sent = $fonnte->sendMessage($phoneNumber, self::INSUFFICIENT_CREDIT_MESSAGE) || $sent;
+            } catch (\Throwable $e) {
+                Log::error('Failed to send insufficient credit notice to WhatsApp', ['error' => $e->getMessage()]);
+            }
+        }
+
+        if (! $sent) {
+            // Nobody got the message — let the next failure try again.
+            Cache::forget(self::INSUFFICIENT_CREDIT_CACHE_KEY);
+        }
     }
 
     /**
